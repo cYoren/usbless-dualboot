@@ -1,5 +1,8 @@
 # usbless-dualboot
 
+[![CI](https://github.com/cYoren/usbless-dualboot/actions/workflows/ci.yml/badge.svg)](https://github.com/cYoren/usbless-dualboot/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **Install Windows alongside Linux — without a USB stick.**
 
 `usbless-dualboot` turns the machine's own internal SSD into a temporary Windows installer, installs Windows into space you free up, and restores a clean dual-boot menu — with your Linux install still the default. No flash drive, no second computer, no guesswork about device names.
