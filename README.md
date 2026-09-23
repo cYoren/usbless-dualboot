@@ -96,6 +96,12 @@ Global flags: `--json`, `--dry-run`, `--yes`, `--help`, `--version`.
 | Secure Boot | Custom keys via `sbctl`; keeps Microsoft keys so Windows still boots |
 | Distros | Any Arch-based or mainstream distro; Debian/Fedora tool mapping documented in `docs/DESIGN.md` |
 
+## Case studies
+
+Real runs on real hardware live in [`docs/case-studies/`](docs/case-studies/). The first is a
+Dell G15 running Omarchy + Limine + LUKS/Btrfs with Windows 11 added. Add yours with the
+template.
+
 ## Safety
 
 - Every phase takes backups (GPT, LUKS header) and refuses to run if disk identity, sizes, UUIDs, or health checks differ from the probe.

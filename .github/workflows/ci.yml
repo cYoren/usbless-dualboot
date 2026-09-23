@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: sudo apt-get update -qq && sudo apt-get install -y shellcheck jq
+
+      - name: Lint (syntax)
+        run: make lint
+
+      - name: ShellCheck (advisory)
+        continue-on-error: true
+        run: shellcheck --severity=warning $(git ls-files '*.sh' bin/usbless-dualboot)
+
+      - name: Smoke test
+        run: make test

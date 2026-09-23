@@ -1,17 +1,22 @@
 SHELL := /usr/bin/env bash
 SCRIPTS := bin/usbless-dualboot $(wildcard lib/*.sh) $(wildcard examples/reference-omarchy/*.sh) $(wildcard tests/*.sh)
 
-.PHONY: help lint test probe plan clean
+.PHONY: help lint shellcheck test probe plan clean
 
 help:
-	@echo "make lint    - bash -n every script"
-	@echo "make test    - run the smoke test (requires probe to work on this host)"
-	@echo "make probe   - run 'probe' on this host"
-	@echo "make plan    - show the plan for a Windows ISO (set ISO=...)"
-	@echo "make clean   - remove transient files"
+	@echo "make lint        - bash -n every script"
+	@echo "make shellcheck  - advisory ShellCheck pass (if installed)"
+	@echo "make test        - run the smoke test (requires probe to work on this host)"
+	@echo "make probe       - run 'probe' on this host"
+	@echo "make plan        - show the plan for a Windows ISO (set ISO=...)"
+	@echo "make clean       - remove transient files"
 
 lint:
 	@bash -n $(SCRIPTS) && echo "lint OK"
+
+shellcheck:
+	@command -v shellcheck >/dev/null || { echo "shellcheck not installed"; exit 0; }
+	@shellcheck $(SCRIPTS) || true
 
 test: lint
 	@bash tests/smoke.sh
