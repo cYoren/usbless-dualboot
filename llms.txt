@@ -1,0 +1,50 @@
+# usbless-dualboot
+
+> Install Windows alongside Linux without a USB stick, by using the internal SSD as the installer and restoring a clean dual-boot menu.
+
+Project type: system administration CLI (bash).
+License: MIT.
+Status: scaffold (probe/plan functional; other phases being ported).
+
+## What it does
+- Probes disks, partitions, filesystems, encryption (LUKS), bootloader (Limine/GRUB/systemd-boot), firmware (UEFI/TPM/Secure Boot).
+- Plans a safe shrink of the Linux storage (filesystem -> LUKS -> partition).
+- Creates a temporary FAT32 installer partition, copies a Windows ISO, and splits sources/install.wim with wimlib so it fits FAT32.
+- Registers a one-time UEFI boot entry for the internal installer.
+- After Windows installs: restores the default boot order, adds a Windows entry to the boot menu, and can set up Secure Boot with sbctl.
+
+## Entry points
+- README.md - overview, quickstart, supported matrix, safety.
+- SKILL.md - agent skill: when to use, guardrails, exact workflow.
+- docs/SAFETY.md - destructive-operation policy and recovery.
+- docs/DESIGN.md - architecture, phase model, portability.
+- docs/SECUREBOOT.md - signing the Linux boot chain and enrolling keys.
+- bin/usbless-dualboot - CLI dispatcher (help, version, subcommands).
+- lib/probe.sh - read-only detection with --json.
+- lib/plan.sh - plan generation.
+
+## Directions
+- add-windows (implemented): Linux machine gains Windows.
+- add-linux (planned): Windows machine gains Linux; see docs/DIRECTIONS.md.
+
+## Commands
+  usbless-dualboot probe [--json]
+  usbless-dualboot plan --add windows|linux --iso PATH --linux-new-size SIZE [--write]
+  usbless-dualboot shrink [--dry-run]
+  usbless-dualboot stage [--dry-run]
+  usbless-dualboot boot (--installer | --restore)
+  usbless-dualboot windows (--add | --remove)
+  usbless-dualboot secureboot (--prep | --enroll | --verify)
+
+## Hard rules for agents
+1. Never run shrink/stage/boot/secureboot without first showing the user `probe` and `plan` output.
+2. Never hardcode device names; resolve them from `probe --json`.
+3. Mutating commands must be run with sudo in a visible terminal (the user enters the password).
+4. Take backups (GPT, LUKS header) before any partition or encryption change.
+5. If the user is dual-booting Windows, warn about BitLocker/Device Encryption recovery keys before changing Secure Boot keys or state.
+6. If a boot fails, instruct the user to disable Secure Boot in firmware; that always recovers.
+
+## Environment assumptions
+- Linux in UEFI mode, GPT disk.
+- Btrfs (online shrink) or ext4 (offline shrink); optionally LUKS2.
+- A Windows 11 ISO supplied by the user.

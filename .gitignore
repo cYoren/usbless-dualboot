@@ -1,0 +1,13 @@
+# state and backups
+/var/
+*.log
+*.bak
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# editor
+*.swp
+.idea/
+.vscode/

@@ -1,0 +1,18 @@
+{
+  "direction": "add-windows",
+  "disk": "/dev/nvme0n1",
+  "linux_part": "/dev/nvme0n1p2",
+  "linux_mapper": "root",
+  "linux_fstype": "btrfs",
+  "esp_part": "/dev/nvme0n1p1",
+  "esp_mount": "/boot",
+  "bootloader": "limine",
+  "linux_new_size": "1526G",
+  "installer_size": "12G",
+  "installer_start": "3881861120",
+  "installer_end": "3907026943",
+  "windows_start": "3206578176",
+  "windows_end": "3881861119",
+  "disk_sectors": "3907029168",
+  "iso": "/home/user/Downloads/Win11.iso"
+}

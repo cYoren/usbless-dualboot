@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# usbless-dualboot - install Windows alongside Linux without a USB stick.
+set -Eeuo pipefail
+
+VERSION="0.1.0"
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+ROOT="$(cd "$(dirname "$SELF")/.." && pwd)"
+LIB="$ROOT/lib"
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+usage() {
+  cat <<'EOF'
+usbless-dualboot - install Windows alongside Linux without a USB stick
+
+Usage:
+  usbless-dualboot <command> [options]
+
+Commands:
+  probe        Detect disks, filesystems, encryption, bootloader, firmware.
+  plan         Print a concrete, reviewable plan (no changes).
+  shrink       Shrink Linux storage to free space (guarded).
+  stage        Create the FAT32 installer partition, copy ISO, split install.wim.
+  boot         Register a one-time UEFI entry, or restore the boot order.
+  windows      Add or remove a Windows entry in the boot menu.
+  secureboot   Sign the Linux boot chain (sbctl) and guide key enrollment.
+  version      Print version.
+  help         Show this help.
+
+Global options:
+  --json        Machine-readable output (where supported).
+  --dry-run     Print actions without executing them.
+  --yes         Assume yes (non-interactive).
+
+Examples:
+  sudo usbless-dualboot probe --json
+  usbless-dualboot plan --iso ~/Downloads/Win11.iso --windows-size 320GiB
+  sudo usbless-dualboot stage --iso ~/Downloads/Win11.iso
+
+Docs: README.md  |  Agent entry: llms.txt  |  Skill: SKILL.md
+EOF
+}
+
+need_lib() {
+  local s="$LIB/$1"
+  [[ -f $s ]] || die "missing library: $s"
+  exec "$s" "${@:2}"
+}
+
+main() {
+  local cmd="${1:-help}"
+  shift || true
+  case "$cmd" in
+    probe)      need_lib probe.sh "$@" ;;
+    plan)       need_lib plan.sh "$@" ;;
+    shrink)     need_lib shrink.sh "$@" ;;
+    stage)      need_lib stage.sh "$@" ;;
+    boot)       need_lib boot.sh "$@" ;;
+    windows)    need_lib windows.sh "$@" ;;
+    secureboot) need_lib secureboot.sh "$@" ;;
+    version|-V|--version) printf 'usbless-dualboot %s\n' "$VERSION" ;;
+    help|-h|--help|"") usage ;;
+    *) die "unknown command: $cmd (try: usbless-dualboot help)" ;;
+  esac
+}
+
+main "$@"
