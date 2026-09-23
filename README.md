@@ -136,6 +136,11 @@ Roadmap:
 3. Add a `probe --write-config` state file so phases never guess device names.
 4. Add integration tests with loopback disks.
 
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md). Good first issues are labeled and there is a
+[case-study template](docs/case-studies/TEMPLATE.md).
+
 ## License
 
 MIT — see `LICENSE`.
