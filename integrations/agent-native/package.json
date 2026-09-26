@@ -1,0 +1,26 @@
+{
+  "name": "@usbless-dualboot/integration-agent-native",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Read-only Agent-Native companion for usbless-dualboot: shared typed pure-function actions over user-supplied probe JSON and plan config.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "build:ui": "esbuild src/ui-entry.ts --bundle --format=esm --platform=browser --target=es2022 --outfile=dist/ui-bundle.js",
+    "actions": "node --experimental-strip-types src/registry.ts",
+    "verify": "npm run typecheck && npm run test && npm run build:ui"
+  },
+  "dependencies": {
+    "@agent-native/core": "0.189.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0",
+    "typescript": "^5.7.0"
+  }
+}

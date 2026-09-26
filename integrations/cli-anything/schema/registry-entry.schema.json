@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/cYoren/usbless-dualboot/blob/main/integrations/cli-anything/schema/registry-entry.schema.json",
+  "title": "CLI-Hub registry.json entry",
+  "description": "One element of the `clis` array in registry.json / public_registry.json. The required-field set and category rule are taken from HKUDS/CLI-Anything CONTRIBUTING.md, then checked against every currently published entry. Optional fields such as source_url, install_cmd, contributors, package_manager, npx_cmd, platform, detect_cmd and install_strategy are allowed because upstream does not populate them consistently.",
+  "type": "object",
+  "required": [
+    "name",
+    "display_name",
+    "version",
+    "description",
+    "requires",
+    "homepage",
+    "entry_point",
+    "skill_md",
+    "category"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:[_-][a-z0-9]+)*$",
+      "description": "Lowercase registry identifier; upstream uses hyphens and underscores. Must be unique across both registries."
+    },
+    "display_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable name shown on the hub."
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Version as published. Common values include semantic versions, 'latest', and 'bundled'; the registries do not enforce SemVer."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 400,
+      "description": "One-line description of what the CLI does."
+    },
+    "requires": {
+      "type": ["string", "null"],
+      "description": "Runtime dependencies the user needs, or null."
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri",
+      "description": "Homepage of the target the CLI operates on."
+    },
+    "source_url": {
+      "type": ["string", "null"],
+      "format": "uri",
+      "description": "Standalone repos: URL to the repo. In-repo harnesses: null."
+    },
+    "install_cmd": {
+      "type": "string",
+      "minLength": 12,
+      "description": "Full install command. CLI-Hub's installer dispatches on this: a pip/uv/git+ URL or npm package is required for it to know how to install."
+    },
+    "entry_point": {
+      "type": "string",
+      "minLength": 1,
+      "description": "CLI command name on PATH after install. cli-hub verifies this exists when installing."
+    },
+    "skill_md": {
+      "type": ["string", "null"],
+      "description": "Path or URL to the canonical SKILL.md; null only if not yet available."
+    },
+    "category": {
+      "type": "string",
+      "minLength": 1,
+      "description": "One of the categories present in registry.json / public_registry.json."
+    },
+    "contributors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "url"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "url": { "type": "string", "format": "uri" }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

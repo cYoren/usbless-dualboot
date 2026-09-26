@@ -1,0 +1,21 @@
+{
+  "name": "@usbless-dualboot/integration-cli-hub",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "CLI-Hub registration payload for usbless-dualboot, plus a validator that checks the payload against the published CLI-Hub registry format and cross-checks it against the real CLI.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "validate": "node validate.mjs",
+    "validate:strict": "node validate.mjs --strict",
+    "validate:upstream": "node validate.mjs --upstream",
+    "test": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1"
+  }
+}

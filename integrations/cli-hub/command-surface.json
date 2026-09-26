@@ -1,0 +1,265 @@
+{
+  "$schema": "./command-surface.schema.json",
+  "$comment": "The real command surface of the EXISTING bash CLI, read out of bin/usbless-dualboot and lib/*.sh. This file exists because the CLI-Hub registry format has no field for danger level, side effects, or exit codes, and inventing one inside registry-entry.json would be inaccurate against the published schema. Nothing here describes a command that does not exist, and no command is marked safer than it is.",
+
+  "cli": "usbless-dualboot",
+  "binary": "bin/usbless-dualboot",
+  "version": "0.1.0",
+  "dispatch": "bin/usbless-dualboot case statement; each command exec()s lib/<command>.sh",
+  "requires_root_mechanism": "lib/common.sh need_root(): exits 1 with 'this command must run as root' unless EUID is 0",
+  "exit_codes": {
+    "0": "success, or help/version explicitly requested",
+    "1": "failure. Every failure path goes through die() in lib/common.sh / bin/usbless-dualboot, which prints 'error: <message>' to stderr and exits 1. Unknown subcommands also exit 1."
+  },
+  "global_options": {
+    "--json": "Structured machine-readable output, where the command supports it (probe, plan; plan additionally implies the JSON path).",
+    "--dry-run": "Print the actions without executing them. Supported by every mutating command.",
+    "--yes": "Assume yes, non-interactive. Supported by shrink and stage.",
+    "--config PATH": "Plan configuration JSON. Defaults to /var/lib/usbless-dualboot/config.json (USBDB_CONFIG), or ./usbless-dualboot.json for a non-root plan --write."
+  },
+
+  "danger_scale": {
+    "none": "Read-only. Observes the system and writes nothing.",
+    "writes_config": "Writes a JSON file (plan config, or restore-point backups) but does not modify disks, filesystems, encryption, or firmware.",
+    "mutating": "Changes persistent system state outside the tool's own config directory. Recoverable by another command in this CLI, not by the tool automatically.",
+    "destructive": "Resizes or repartitions storage, writes installer payloads to disk, or changes UEFI/Secure Boot key state. Carries real data-loss or unbootable-machine risk. Requires a backup that the tool takes before acting."
+  },
+
+  "commands": [
+    {
+      "name": "probe",
+      "lib": "lib/probe.sh",
+      "summary": "Detect disks, filesystems, encryption, bootloader, and firmware state.",
+      "requires_root": false,
+      "danger": "none",
+      "side_effects": [],
+      "json_supported": true,
+      "json_flags": ["--json"],
+      "dry_run_supported": false,
+      "flags": ["--json", "--config PATH", "-h, --help"],
+      "exit_codes": {
+        "0": "probe document emitted (human-readable, or JSON with --json)",
+        "1": "dependency or detection failure via die()"
+      },
+      "json_shape": {
+        "uefi": "yes|no",
+        "tpm2": "yes|no",
+        "secure_boot": "enabled|disabled|unknown",
+        "setup_mode": "enabled|disabled|unknown",
+        "bootloader": "limine|systemd-boot|grub|unknown",
+        "root_source": "e.g. /dev/sda1, or /dev/mapper/<name> when the root is on LUKS/LVM",
+        "root_fstype": "e.g. ext4|btrfs",
+        "encryption": "luks|no",
+        "lsblk": "verbatim 'lsblk --json' output; blockdevices[] entries carry name/path/size/type/fstype/mountpoints/children"
+      },
+      "note": "The only command in this CLI that is safe to run unattended. probe --json is the documented machine-readable entry point and the sole input the read-only companion consumes."
+    },
+    {
+      "name": "plan",
+      "lib": "lib/plan.sh",
+      "summary": "Print a concrete, reviewable plan. Computes partition geometry and sizes without changing anything.",
+      "requires_root": false,
+      "danger": "writes_config",
+      "side_effects": ["With --write only: persists the plan as JSON to the config path (./usbless-dualboot.json when non-root). Without --write, nothing is written."],
+      "json_supported": true,
+      "json_flags": ["--json"],
+      "dry_run_supported": true,
+      "dry_run_note": "--dry-run validates plan inputs without writing files.",
+      "flags": [
+        "--add windows|linux",
+        "--direction add-windows|add-linux",
+        "--iso PATH",
+        "--linux-new-size SIZE (e.g. 1526G)",
+        "--installer-size SIZE (default 12G)",
+        "--config PATH",
+        "--write",
+        "--json",
+        "--dry-run",
+        "-h, --help"
+      ],
+      "exit_codes": {
+        "0": "plan printed, and written when --write was given",
+        "1": "invalid geometry or inputs via die()"
+      },
+      "note": "plan --write produces the config.json that every mutating phase reads. The mutating phases abort if it is missing."
+    },
+    {
+      "name": "shrink",
+      "lib": "lib/shrink.sh",
+      "summary": "Shrink Linux storage to free space for the target OS.",
+      "requires_root": true,
+      "danger": "destructive",
+      "destructive": true,
+      "reversible": false,
+      "requires_backup": true,
+      "backup_behavior": "Before touching anything, writes a restore point to $USBDB_STATE_DIR/backups/shrink-<timestamp>/ containing the GPT (sfdisk --json) and, when the root is LUKS-encrypted, a LUKS header backup (chmod 600).",
+      "side_effects": [
+        "Resizes the root filesystem (filesystem first, then LUKS, then the partition; never the reverse)",
+        "Rewrites the GPT partition table",
+        "Overwrites the disk's backup GPT at the end of the device, which is why the installer partition is carved from the tail"
+      ],
+      "json_supported": false,
+      "dry_run_supported": true,
+      "flags": ["--dry-run", "--yes", "--confirm-plan PLAN_ID", "--config PATH", "-h, --help"],
+      "guards": [
+        "need_root",
+        "Verifies the on-disk disk GUID, Linux PARTUUID, and partition start sector against the plan before resizing, and aborts on mismatch",
+        "Verifies the total disk sector count against the plan",
+        "Refuses to proceed without confirmation unless --yes is paired with a verified plan",
+        "--confirm-plan requires the exact plan ID"
+      ],
+      "exit_codes": {
+        "0": "shrink completed or --dry-run validated",
+        "1": "guard failure, geometry mismatch, or non-root"
+      },
+      "note": "Online shrink is supported only for Btrfs. ext4 online shrink is unsupported and rejected."
+    },
+    {
+      "name": "stage",
+      "lib": "lib/stage.sh",
+      "summary": "Create the FAT32 installer partition, copy the ISO payload, and split install.wim when it exceeds the FAT32 file limit.",
+      "requires_root": true,
+      "danger": "destructive",
+      "destructive": true,
+      "reversible": true,
+      "reversible_note": "Reversible only in the sense that the installer partition can be deleted again; the payload written to disk is not journaled by the tool.",
+      "requires_backup": false,
+      "side_effects": [
+        "Creates and formats a FAT32 partition at the planned installer_start/installer_end offsets",
+        "Copies the ISO payload via rsync",
+        "Splits any file over 4294967295 bytes (FAT32 limit) into install*.swm parts",
+        "Uses mtools to set the FAT label and EFI loader path"
+      ],
+      "json_supported": false,
+      "dry_run_supported": true,
+      "flags": ["--dry-run", "--yes", "--config PATH", "--os linux", "-h, --help"],
+      "guards": [
+        "need_root",
+        "Requires the plan config to exist",
+        "Verifies the disk GUID against the plan",
+        "Requires shrink_complete to be set in the config before staging the Windows path",
+        "Verifies the staged copy with rsync -rcn and rejects oversized files"
+      ],
+      "exit_codes": {
+        "0": "staged or --dry-run validated",
+        "1": "guard failure, geometry mismatch, missing config, or non-root"
+      },
+      "note": "With --os linux this dispatches to lib/stage-linux.sh (beta), which stages a Linux ISO instead."
+    },
+    {
+      "name": "boot",
+      "lib": "lib/boot.sh",
+      "summary": "Register a one-time UEFI boot entry for the staged installer, or restore the Linux bootloader as primary.",
+      "requires_root": true,
+      "danger": "mutating",
+      "destructive": true,
+      "destructive_reason": "Changes persistent UEFI NVRAM boot variables. A wrong or lost boot order can leave the machine booting into the wrong target or nothing until firmware settings are corrected by hand.",
+      "reversible": true,
+      "reversible_note": "boot --restore reverses boot --installer.",
+      "requires_backup": false,
+      "side_effects": [
+        "Creates or removes an EFI boot entry via efibootmgr",
+        "Rewrites the UEFI boot order"
+      ],
+      "json_supported": false,
+      "dry_run_supported": true,
+      "dry_run_note": "Simulates UEFI NVRAM changes without modifying boot order.",
+      "flags": ["--installer", "--restore", "--dry-run", "--config PATH", "-h, --help"],
+      "guards": ["need_root", "need_cmd efibootmgr", "Requires the plan config to exist"],
+      "exit_codes": {
+        "0": "boot entry set/restored, or --dry-run validated",
+        "1": "missing efibootmgr, missing config, or non-root"
+      },
+      "note": "Does not mount or modify any filesystem. It is firmware configuration, not storage."
+    },
+    {
+      "name": "windows",
+      "lib": "lib/windows.sh",
+      "summary": "Add or remove a Windows entry in the Linux bootloader's menu.",
+      "requires_root": true,
+      "danger": "mutating",
+      "destructive": false,
+      "reversible": true,
+      "reversible_note": "windows --remove reverses windows --add.",
+      "requires_backup": false,
+      "side_effects": [
+        "Edits the bootloader configuration on the ESP (limine.conf, loader/loader.conf, or grub.cfg depending on the detected bootloader)",
+        "Points the entry at $ESP_MOUNT/EFI/Microsoft/Boot/bootmgfw.efi"
+      ],
+      "json_supported": false,
+      "dry_run_supported": true,
+      "dry_run_note": "Simulates configuration changes without writing files.",
+      "flags": ["--add", "--remove", "--dry-run", "--config PATH", "-h, --help"],
+      "guards": ["need_root", "Requires the plan config to exist"],
+      "exit_codes": {
+        "0": "entry added/removed, or --dry-run validated",
+        "1": "missing config or non-root"
+      },
+      "note": "Reversible and the least dangerous mutating command, but it still writes inside the EFI system partition."
+    },
+    {
+      "name": "secureboot",
+      "lib": "lib/secureboot.sh",
+      "summary": "Sign the Linux boot chain with sbctl and guide custom key enrollment.",
+      "requires_root": true,
+      "danger": "destructive",
+      "destructive": true,
+      "destructive_reason": "Creates and enrolls Secure Boot signing keys into UEFI. If the keys are lost or enrollment is botched, signed boot chains stop verifying and the machine can be left unbootable until Secure Boot is disabled in firmware.",
+      "reversible": true,
+      "reversible_note": "Disabling Secure Boot in firmware recovers a machine that fails signature verification, but it is a firmware-level manual recovery, not a command in this CLI.",
+      "requires_backup": true,
+      "backup_behavior": "Key material is generated into the sbctl key directory; losing it requires re-enrollment from Setup Mode.",
+      "side_effects": [
+        "Creates sbctl signing keys",
+        "Signs EFI binaries in the boot chain",
+        "Disables Limine path-hash verification (the signature provides integrity instead)",
+        "Enrolls custom keys alongside the Microsoft keys, which requires the firmware to be in Setup Mode",
+        "Writes UEFI variables"
+      ],
+      "json_supported": false,
+      "dry_run_supported": true,
+      "dry_run_note": "Simulates operations without touching keys or UEFI variables.",
+      "flags": ["--prep", "--enroll", "--verify", "--dry-run", "--config PATH", "-h, --help"],
+      "guards": [
+        "need_root",
+        "sbctl status --json is parsed and --enroll refuses to run unless setup_mode is true",
+        "Requires the plan config to exist"
+      ],
+      "exit_codes": {
+        "0": "keys prepared/enrolled/verified, or --dry-run validated",
+        "1": "firmware not in Setup Mode, missing config, or non-root"
+      },
+      "note": "If Windows may be BitLocker/Device-Encryption encrypted, the user must have the 48-digit recovery key before changing Secure Boot key state."
+    },
+    {
+      "name": "version",
+      "lib": "bin/usbless-dualboot",
+      "summary": "Print the version.",
+      "requires_root": false,
+      "danger": "none",
+      "side_effects": [],
+      "json_supported": false,
+      "dry_run_supported": false,
+      "flags": ["-V, --version"],
+      "exit_codes": { "0": "version printed" }
+    },
+    {
+      "name": "help",
+      "lib": "bin/usbless-dualboot",
+      "summary": "Show usage.",
+      "requires_root": false,
+      "danger": "none",
+      "side_effects": [],
+      "json_supported": false,
+      "dry_run_supported": false,
+      "flags": ["-h, --help"],
+      "exit_codes": { "0": "usage printed" }
+    }
+  ],
+
+  "integrator_contract": {
+    "read_only_commands": ["probe", "plan", "version", "help"],
+    "mutating_commands": ["shrink", "stage", "boot", "windows", "secureboot"],
+    "rule": "An agent integration may invoke read_only_commands. It must not invoke mutating_commands: those require root, a human at a visible terminal for the password, and a confirmed plan. The read-only companion in integrations/agent-native therefore exposes no action that maps to a mutating command, and its tests assert that."
+  }
+}

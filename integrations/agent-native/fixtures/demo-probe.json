@@ -1,0 +1,52 @@
+{
+  "_fixture": {
+    "label": "SYNTHETIC DEMO FIXTURE - NOT REAL HOST DATA",
+    "why": "Checked into the repo so the companion, its tests, and reviewers have a realistic but entirely invented probe document. No data here was captured from any real machine.",
+    "shape_of": "usbless-dualboot probe --json",
+    "synthetic_host": "Invented 2TB NVMe laptop: UEFI, LUKS-encrypted btrfs root, limine bootloader, Secure Boot disabled, TPM 2.0 present."
+  },
+  "uefi": "yes",
+  "tpm2": "yes",
+  "secure_boot": "disabled",
+  "setup_mode": "disabled",
+  "bootloader": "limine",
+  "root_source": "/dev/mapper/root",
+  "root_fstype": "btrfs",
+  "encryption": "luks",
+  "lsblk": {
+    "blockdevices": [
+      {
+        "name": "nvme0n1",
+        "path": "/dev/nvme0n1",
+        "size": "1.8T",
+        "type": "disk",
+        "fstype": null,
+        "mountpoints": [
+          null
+        ],
+        "children": [
+          {
+            "name": "nvme0n1p1",
+            "path": "/dev/nvme0n1p1",
+            "size": "1G",
+            "type": "part",
+            "fstype": "vfat",
+            "mountpoints": [
+              "/boot"
+            ]
+          },
+          {
+            "name": "nvme0n1p2",
+            "path": "/dev/nvme0n1p2",
+            "size": "1.8T",
+            "type": "part",
+            "fstype": "crypto_LUKS",
+            "mountpoints": [
+              null
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

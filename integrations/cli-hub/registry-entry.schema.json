@@ -1,0 +1,122 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/cYoren/usbless-dualboot/integrations/cli-hub/registry-entry.schema.json",
+  "title": "CLI-Hub registry entry",
+  "description": "JSON Schema for a single CLI-Hub registry entry, transcribed from the published registries at HKUDS/CLI-Anything (registry.json + public_registry.json, 103 entries) and from cli-hub/cli_hub/installer.py. Required fields are those present in 100% of published entries; recommended fields are present in >=98%. All 103 published entries validate against this schema. additionalProperties is true because the published entries carry optional and legacy keys (contributor, contributor_url, engines, platform, docs_url); a submission should still be run through validate.mjs --strict, which reports unknown keys separately.",
+  "type": "object",
+
+  "required": [
+    "name",
+    "display_name",
+    "version",
+    "description",
+    "category",
+    "requires",
+    "homepage",
+    "skill_md",
+    "entry_point"
+  ],
+
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique registry key. Matched case-insensitively by cli_hub.registry.get_cli.",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "minLength": 1
+    },
+    "display_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Either a concrete version or the literal \"latest\"."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "One-line summary. cli_hub.registry.search_clis substring-matches against it, so keywords matter."
+    },
+    "category": {
+      "type": "string",
+      "minLength": 1,
+      "enum": [
+        "3d", "ai", "audio", "automation", "communication", "data-science",
+        "database", "debugging", "design", "devops", "devtools", "diagrams",
+        "finance", "game", "gamedev", "generation", "graphics", "image",
+        "knowledge", "knowledge-management", "mobile", "music", "network",
+        "office", "osint", "productivity", "project-management", "science",
+        "scientific", "search", "storage", "streaming", "testing", "video", "web"
+      ],
+      "description": "Union of the category values actually used across both published registries."
+    },
+    "requires": {
+      "type": ["string", "null"],
+      "description": "Human-readable runtime requirements, e.g. \"bash >= 4.4, util-linux, jq\". The key is present in all 103 published entries, but 2 of them (mermaid, macrocli) carry null."
+    },
+    "homepage": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Project homepage or repository URL."
+    },
+    "skill_md": {
+      "type": ["string", "null"],
+      "description": "Where the agent-facing SKILL.md lives: a repo-relative path for harness entries, or an install command string such as \"npx skills add <owner>/<repo> -y -g\" for public entries. The key is present in all 103 published entries, but 5 harness entries carry null."
+    },
+    "entry_point": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Executable name placed on PATH. Also the default detect command."
+    },
+    "source_url": {
+      "type": ["string", "null"],
+      "description": "Present in 102/103 published entries; null for CLIs with no public source."
+    },
+    "contributors": {
+      "type": "array",
+      "description": "Present in 102/103 published entries. Legacy entries use flat contributor/contributor_url string keys instead.",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "url": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": true
+      }
+    },
+    "install_cmd": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Present in 101/103 published entries. Run through a shell when it contains metacharacters (see installer._run_command), so pipes and && are permitted."
+    },
+    "install_strategy": {
+      "type": "string",
+      "enum": ["command", "pip", "npm", "uv", "bundled"],
+      "description": "Selects the installer handler in installer._perform_action. \"command\" runs install_cmd verbatim via _generic_install."
+    },
+    "package_manager": {
+      "type": "string",
+      "description": "Used by installer._install_strategy as a fallback when install_strategy is absent. The published corpus uses an open vocabulary here (npm, pip, brew, bundled, go, uv, script), so only the strings that installer.py itself dispatches on are enumerated; anything else falls through to the generic command strategy."
+    },
+    "install_notes": { "type": "string" },
+    "uninstall_cmd": { "type": "string" },
+    "uninstall_notes": { "type": "string" },
+    "update_cmd": { "type": "string" },
+    "update_notes": { "type": "string" },
+    "detect_cmd": {
+      "type": "string",
+      "description": "Command used by installer._command_exists to decide whether the CLI is already present. Defaults to entry_point."
+    },
+    "docs_url": { "type": "string" },
+    "platform": { "type": "string" },
+    "engines": { "type": "object" },
+    "npm_package": { "type": "string" },
+    "npx_cmd": { "type": "string" },
+    "contributor": { "type": "string" },
+    "contributor_url": { "type": "string" }
+  },
+
+  "additionalProperties": true
+}

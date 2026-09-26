@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cli-anything-usbless-dualboot"
+version = "0.1.0"
+description = "CLI-Anything harness for usbless-dualboot: agent-native, stateful wrapper around the usbless-dualboot bash CLI"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "cYoren", email = "noreply@users.noreply.github.com" }]
+keywords = ["cli-anything", "cli-hub", "dual-boot", "uefi", "windows", "linux", "agent-native"]
+classifiers = [
+  "Environment :: Console",
+  "Intended Audience :: System Administrators",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Topic :: System :: Boot",
+  "Topic :: System :: Systems Administration",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/cYoren/usbless-dualboot"
+Repository = "https://github.com/cYoren/usbless-dualboot"
+
+[project.scripts]
+cli-anything-usbless-dualboot = "cli_anything_usbless_dualboot.cli:main"
+
+[tool.setuptools]
+packages = ["cli_anything_usbless_dualboot"]
+
+[tool.setuptools.package-data]
+cli_anything_usbless_dualboot = ["manifest.json", "SKILL.md"]

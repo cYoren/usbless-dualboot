@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>usbless-dualboot — read-only companion</title>
+    <style>
+      :root { color-scheme: light dark; --line: color-mix(in srgb, currentColor 18%, transparent); }
+      body { font: 15px/1.5 ui-sans-serif, system-ui, sans-serif; margin: 0; padding: 2rem; max-width: 62rem; }
+      h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
+      h2 { font-size: 1.05rem; margin: 2rem 0 .5rem; }
+      h3 { font-size: .98rem; margin: .6rem 0; }
+      h4 { font-size: .9rem; margin: 1rem 0 .35rem; text-transform: uppercase; letter-spacing: .04em; opacity: .7; }
+      .lede { opacity: .75; margin: 0 0 1.5rem; }
+      .safety { border-left: 3px solid #b45309; background: color-mix(in srgb, #b45309 10%, transparent); padding: .6rem .8rem; margin: 0 0 1.5rem; font-size: .9rem; }
+      label { display: block; font-weight: 600; margin: .9rem 0 .25rem; }
+      input[type=file] { display: block; }
+      .muted { opacity: .6; }
+      table.kv { border-collapse: collapse; width: 100%; }
+      table.kv th { text-align: left; width: 11rem; font-weight: 600; opacity: .8; }
+      table.kv th, table.kv td { border-bottom: 1px solid var(--line); padding: .3rem .4rem; vertical-align: top; }
+      ul.findings { list-style: none; padding: 0; margin: 0; }
+      ul.findings li { border-left: 3px solid var(--line); padding: .35rem .6rem; margin: 0 0 .4rem; }
+      ul.findings li .tag { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; margin-right: .4rem; }
+      .lvl-info { border-color: #0f766e; } .lvl-info .tag { color: #0f766e; }
+      .lvl-note { border-color: #1d4ed8; } .lvl-note .tag { color: #1d4ed8; }
+      .lvl-warning { border-color: #b45309; } .lvl-warning .tag { color: #b45309; }
+      .lvl-dangerous { border-color: #b91c1c; } .lvl-dangerous .tag { color: #b91c1c; }
+      .risk, .verdict, .reject { border: 1px solid var(--line); border-left-width: 4px; padding: .6rem .8rem; margin: .5rem 0 1rem; }
+      .risk .next { margin: .4rem 0 0; }
+      .reject { border-color: #b91c1c; }
+      ol.phases { margin: 0; padding-left: 1.3rem; }
+      code { font-family: ui-monospace, monospace; font-size: .88em; }
+      #registry-table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+      #registry-table th, #registry-table td { border-bottom: 1px solid var(--line); padding: .3rem .4rem; text-align: left; }
+    </style>
+  </head>
+  <body>
+    <h1>usbless-dualboot — read-only companion</h1>
+    <p class="lede">
+      Validates a probe document, summarizes the detected layout, compares a proposed plan against it,
+      and explains the risk. It reads only the files you select below.
+    </p>
+
+    <p class="safety">
+      <strong>This tool cannot change your machine.</strong> It performs no disk discovery, needs no root,
+      runs no command, opens no network connection, and exposes no port. Every capability is read-only and
+      built from pure functions. The CLI's mutating phases are <em>not implemented here</em> — to actually
+      shrink, stage, or alter boot entries you must run <code>usbless-dualboot</code> yourself in a terminal,
+      after reviewing its own <code>--dry-run</code> output.
+    </p>
+
+    <h2>1. Inputs</h2>
+    <label for="probe-file">Probe document (<code>usbless-dualboot probe --json</code>)</label>
+    <input id="probe-file" type="file" accept="application/json,.json" />
+    <label for="plan-file">Plan document (optional, from <code>plan --json</code>)</label>
+    <input id="plan-file" type="file" accept="application/json,.json" />
+    <p class="muted" id="status">Select a probe JSON file to begin.</p>
+
+    <h2>2. Detected layout</h2>
+    <section id="probe-out"></section>
+
+    <h2>3. Plan vs. probe</h2>
+    <section id="plan-out"></section>
+
+    <h2>4. Risk and next step</h2>
+    <section id="risk-out"></section>
+
+    <h2>Action surface</h2>
+    <p class="muted">Generated from <code>src/registry.ts</code> at load time.</p>
+    <table id="registry-table">
+      <thead><tr><th>Action</th><th>Read-only</th><th>Destructive</th><th>run()</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <script type="module" src="./ui-bundle.js"></script>
+  </body>
+</html>

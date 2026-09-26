@@ -1,0 +1,200 @@
+{
+  "$schema": "./manifest.schema.json",
+  "adapter": {
+    "name": "cli-anything-usbless-dualboot",
+    "version": "0.1.0",
+    "registry_name": "usbless-dualboot",
+    "harness_type": "external-cli-wrapper",
+    "wraps": {
+      "command": "usbless-dualboot",
+      "kind": "bash-cli",
+      "repo": "https://github.com/cYoren/usbless-dualboot",
+      "entry_file": "bin/usbless-dualboot",
+      "libraries": "lib/*.sh",
+      "interface_changed": false,
+      "note": "This adapter describes and delegates to the CLI as it exists. It does not reimplement, patch, or replace any phase."
+    }
+  },
+  "target_software": {
+    "name": "usbless-dualboot",
+    "homepage": "https://github.com/cYoren/usbless-dualboot",
+    "category": "devops"
+  },
+  "requirements": {
+    "os": "linux",
+    "firmware": "uefi",
+    "root_required_for": ["shrink", "stage", "boot", "windows", "secureboot"],
+    "commands": ["bash", "jq", "lsblk", "findmnt", "sfdisk"],
+    "filesystem_note": "Online shrink requires a btrfs root; the CLI refuses other filesystems unless it can do it offline."
+  },
+  "exit_codes": {
+    "0": "success",
+    "1": "any failure: usage error, missing dependency, guard/refusal, or a phase that stopped before completing. The CLI has exactly two exit paths (`exit 0` and `exit 1` via its die() helper) and does not use distinct codes per failure class."
+  },
+  "exit_code_notes": "Exit codes were read from bin/usbless-dualboot and lib/*.sh: the union of explicit `exit N` statements is {0, 1}. Any claim of richer codes would be fabricated.",
+  "global_options": [
+    { "flag": "--json", "meaning": "machine-readable output where supported", "supported_by": ["probe", "plan"] },
+    { "flag": "--dry-run", "meaning": "print actions without executing them", "supported_by": ["plan", "shrink", "stage", "boot", "windows", "secureboot"] },
+    { "flag": "--yes", "meaning": "assume yes (non-interactive)", "supported_by": ["shrink", "stage"] },
+    { "flag": "--help", "meaning": "usage text; exits 0", "supported_by": ["*"] },
+    { "flag": "--version", "meaning": "print version; exits 0", "supported_by": ["*"] }
+  ],
+  "commands": [
+    {
+      "name": "probe",
+      "summary": "Detect disks, filesystems, encryption, bootloader, and firmware state.",
+      "requires_root": false,
+      "supports_json": true,
+      "supports_dry_run": false,
+      "writes": [],
+      "danger": "none",
+      "destructive": false,
+      "reversible": true,
+      "reads": ["/sys/firmware/efi", "/dev/tpm*", "/sys/firmware/efi/efivars/SecureBoot-*", "/sys/firmware/efi/efivars/SetupMode-*", "findmnt /", "lsblk"],
+      "json_output_schema": {
+        "uefi": "enum[yes,no]",
+        "tpm2": "enum[yes,no]",
+        "secure_boot": "enum[enabled,disabled,unknown]",
+        "setup_mode": "enum[enabled,disabled,unknown]",
+        "bootloader": "string — free-form. Observed values: limine, systemd-boot, grub, unknown, and '<name> (inferred)' variants when it can only infer from a binary on PATH.",
+        "root_source": "string",
+        "root_fstype": "string",
+        "encryption": "enum[no,luks]",
+        "lsblk": "object — the raw `lsblk -J -o NAME,PATH,SIZE,TYPE,FSTYPE,MOUNTPOINTS` document, passed through unchanged"
+      },
+      "verified_from": "lib/probe.sh lines 25-82"
+    },
+    {
+      "name": "plan",
+      "summary": "Print a concrete, reviewable plan without changing anything.",
+      "requires_root": false,
+      "supports_json": true,
+      "supports_dry_run": true,
+      "writes": ["the config file at $USBDB_CONFIG only when --write is passed"],
+      "danger": "none",
+      "destructive": false,
+      "reversible": true,
+      "note": "Without --write this command only reads and prints. With --write it records the plan to the state directory so later phases can re-verify it.",
+      "verified_from": "lib/plan.sh"
+    },
+    {
+      "name": "shrink",
+      "summary": "Shrink the Linux partition/filesystem to free contiguous space.",
+      "requires_root": true,
+      "supports_json": false,
+      "supports_dry_run": true,
+      "writes": ["partition table of the target disk", "the filesystem on the Linux partition", "$USBDB_STATE_DIR/backups/shrink-<timestamp>/"],
+      "danger": "destructive",
+      "destructive": true,
+      "reversible": false,
+      "why_dangerous": "Rewrites the on-disk partition table and resizes a live root filesystem. It takes a partition-table backup and re-verifies disk size, disk GUID, partition start and PARTUUID before acting, and refuses on mismatch — but a successful shrink cannot be undone by the tool.",
+      "guard": "Compares current disk GUID/sectors and partition start against the recorded plan; aborts via die() (exit 1) on any mismatch.",
+      "verified_from": "lib/shrink.sh lines 42-130"
+    },
+    {
+      "name": "stage",
+      "summary": "Create the FAT32 installer partition, copy the ISO, and split install.wim if needed.",
+      "requires_root": true,
+      "supports_json": false,
+      "supports_dry_run": true,
+      "writes": ["partition table of the target disk", "a new FAT32 filesystem", "the ISO contents onto that partition"],
+      "danger": "destructive",
+      "destructive": true,
+      "reversible": false,
+      "why_dangerous": "Creates a partition and formats it. Requires the shrink phase to have already completed and re-verifies the same disk identity guards.",
+      "guard": "Requires .shrink_complete and .stage_complete markers from state; refuses if the ISO does not fit the installer partition.",
+      "verified_from": "lib/stage.sh lines 46-170"
+    },
+    {
+      "name": "boot",
+      "summary": "Register a one-time UEFI boot entry for the installer, or restore boot order.",
+      "requires_root": true,
+      "supports_json": false,
+      "supports_dry_run": true,
+      "writes": ["UEFI NVRAM boot variables via efibootmgr"],
+      "danger": "firmware",
+      "destructive": false,
+      "reversible": true,
+      "why_dangerous": "Mutates firmware NVRAM rather than disk contents. --restore reverses the boot-order change, which is why this is classed firmware rather than destructive.",
+      "guard": "Requires efibootmgr; modes are --installer or --restore.",
+      "verified_from": "lib/boot.sh lines 40-86"
+    },
+    {
+      "name": "windows",
+      "summary": "Add or remove a Windows entry in the boot menu for the detected bootloader.",
+      "requires_root": true,
+      "supports_json": false,
+      "supports_dry_run": true,
+      "writes": ["ESP bootloader configuration (limine.conf, loader/loader.conf, or grub.cfg)", "a new EFI/Microsoft/Boot entry file"],
+      "danger": "boot-config",
+      "destructive": false,
+      "reversible": true,
+      "why_dangerous": "Edits the boot menu on the EFI system partition. It copies the existing config to a timestamped .bak before changing it, so the edit is reversible.",
+      "guard": "Requires the Windows EFI binary to exist at $ESP_MOUNT/EFI/Microsoft/Boot/bootmgfw.efi.",
+      "verified_from": "lib/windows.sh lines 40-95"
+    },
+    {
+      "name": "secureboot",
+      "summary": "Sign the Linux boot chain with sbctl and guide key enrollment.",
+      "requires_root": true,
+      "supports_json": false,
+      "supports_dry_run": true,
+      "writes": ["signatures on EFI binaries", "firmware key stores (on --enroll, interactively)"],
+      "danger": "firmware",
+      "destructive": false,
+      "reversible": true,
+      "why_dangerous": "Key enrollment writes to firmware key stores and is the phase that can make a machine unbootable if it is abandoned half-way, which is why the CLI splits it into --prep, --enroll and --verify and requires Setup Mode.",
+      "guard": "Modes are --prep, --enroll, --verify; enrollment requires Setup Mode to be enabled.",
+      "verified_from": "lib/secureboot.sh lines 42-91"
+    },
+    {
+      "name": "version",
+      "summary": "Print the CLI version.",
+      "requires_root": false,
+      "supports_json": false,
+      "supports_dry_run": false,
+      "writes": [],
+      "danger": "none",
+      "destructive": false,
+      "reversible": true,
+      "verified_from": "bin/usbless-dualboot"
+    },
+    {
+      "name": "help",
+      "summary": "Print usage text.",
+      "requires_root": false,
+      "supports_json": false,
+      "supports_dry_run": false,
+      "writes": [],
+      "danger": "none",
+      "destructive": false,
+      "reversible": true,
+      "verified_from": "bin/usbless-dualboot"
+    }
+  ],
+  "danger_scale": {
+    "none": "Read-only. Cannot alter the machine.",
+    "boot-config": "Writes bootloader configuration on the ESP. Backed up first, so reversible.",
+    "firmware": "Writes UEFI NVRAM or firmware key stores. Reversible with care, but affects bootability.",
+    "destructive": "Alters the partition table and/or filesystem contents. Cannot be undone by the tool."
+  },
+  "honesty": {
+    "implemented": [
+      "Argument passthrough to the real bash CLI.",
+      "A machine-readable command manifest (this file) exposed via `manifest --json`.",
+      "Danger-class reporting and a root precheck before delegating.",
+      "No phase is reimplemented in Python."
+    ],
+    "not_implemented": [
+      "REPL / stateful multi-operation sessions. The underlying CLI is a set of one-shot phases driven by a state directory, so there is no persistent interactive session to expose.",
+      "Undo/redo. The bash CLI has no undo stack; shrink and stage are irreversible, so claiming undo would be false.",
+      "Any preview rendering. The CLI produces no visual artifacts."
+    ],
+    "not_verified": [
+      "No mutating phase (shrink, stage, boot, windows, secureboot) has been executed or end-to-end tested, here or by the adapter's author: it would require real block devices and root.",
+      "The registry entry has not been submitted to HKUDS/CLI-Anything; no upstream maintainer has reviewed or merged it.",
+      "This adapter has not been reviewed or adopted by CLI-Anything; `cli-hub install usbless-dualboot` does not work until the upstream registry entry is merged.",
+      "Only a local, in-checkout install was exercised (`pip install --no-deps --target <dir> .`). The published form named in install_cmd, `pip install git+https://github.com/cYoren/usbless-dualboot.git#subdirectory=integrations/cli-anything/python`, has NOT been run: the integration is not pushed to that remote yet, so the URL does not resolve."
+    ]
+  }
+}
