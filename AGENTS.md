@@ -48,5 +48,5 @@ generated GRUB is unsigned, so Secure Boot must be off or the GRUB signed first.
 - An interrupted shrink/stage blocks retry. Inspect the actual disk and backups before
   clearing `phase_in_progress`. Never reset a completion marker to repeat a destructive phase.
 - `boot --cancel` removes BootNext only; no automatic cleanup or undo is implemented.
-- This CLI runs on Linux. Hop's Windows frontend, signed boot strategy and distro results
-  are not available just because we adopted some of its ideas.
+- This Bash CLI runs on Linux. The Windows-native implementation is under `platforms/windows`.
+  Validation results must remain specific to the platform, release and tested operation.

@@ -4,9 +4,11 @@ The readiness, ISO verification, installer instructions and recovery workflow we
 by [Hop](https://github.com/Arjun-Ingole/hop), Copyright (c) 2026 Arjun Ingole,
 reviewed at commit `7c35082b1a6feab27b925bf6807ce830ffcc4b8b`.
 
-Hop is MIT licensed. Its engine and artwork are not included here; the new Bash code and
-raccoon artwork were created for this repository. The upstream license is reproduced below
-to preserve attribution if future changes incorporate portions of its implementation.
+The Windows implementation in `platforms/windows/` derives from this MIT-licensed code.
+Its original license and bundled open-font license accompany the source. Original distro
+artwork is not redistributed by the application; its letter marks are drawn from the open font.
+The derivative uses USBless branding and separate runtime identities. The raccoon artwork,
+Linux-native application and new orchestration/test tooling were created for this repository.
 
 ## Hop license
 

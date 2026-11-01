@@ -5,7 +5,7 @@
 - Add a native Qt Quick app with five guided screens, Portuguese/English, responsive layouts,
   live desktop accent/rounding, system file picker, visible-terminal privilege handoff and Arch packaging.
 - Add readiness reports, ISO SHA-256 verification, saved-state reporting and installer guidance.
-- Adopt relevant Hop workflow ideas with attribution and a documented feature comparison.
+- Document installation coverage, third-party licenses and safety validation.
 - Pin ISO fingerprints, GPT disk identity and Linux partition identity/geometry to each plan.
 - Reject partition overlaps, unsupported sector sizes, undersized carriers and unsafe repeated phases.
 - Back up both GPT ends, preserve interrupted-phase state and lock storage operations per plan.

@@ -21,8 +21,8 @@ Status: implemented and proven (see `examples/reference-omarchy/`).
 ## `add-linux` (beta)
 
 A Linux-hosted workflow stages another Linux installer, using the internal disk as the
-carrier (no USB). This Bash CLI cannot run directly in Windows. A Windows-native frontend
-like Hop's is not implemented.
+carrier (no USB). This Bash CLI cannot run directly in Windows. The separate Windows-native
+implementation lives under `platforms/windows` and has independent validation requirements.
 
 This is harder than the reverse:
 

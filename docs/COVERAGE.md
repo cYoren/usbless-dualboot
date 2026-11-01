@@ -1,0 +1,34 @@
+# Installation coverage and validation
+
+USBless Dualboot has a Linux-native Qt Quick application and a Windows-native application.
+The Windows implementation cross-compiles successfully from Linux. This does not yet
+establish installation reliability; results below distinguish source coverage from VM evidence.
+
+| Capability | Current implementation | Validation |
+|---|---|---|
+| Windows-hosted Linux preparation | Windows engine, official downloads, distro recipes, storage selection, progress and recovery | Local executable build succeeded; VM installation matrix in progress |
+| Linux-hosted Windows preparation | Bash engine with ISO verification, guarded Btrfs/LUKS shrink, installer copy and boot recovery | Automated regressions and historical hardware procedure; generalized phases need VM validation |
+| Linux-hosted Linux preparation | GRUB loopback carrier with explicit family handling | Beta; boot evidence must be recorded per distro/release |
+| Native Linux interface | Five guided screens, Portuguese/English, responsive layouts, desktop accent, visible-terminal privileges | Qt interaction tests and screenshots |
+| Native Windows interface | Windows Forms interface with USBless identity and original artwork | Compiles; VM rendering and workflow tests in progress |
+| Agent interfaces | CLI-Hub, CLI-Anything and read-only companion | Automated contract and isolation tests |
+| Installer cleanup | Windows implementation present; Linux ownership-based cleanup still required | Additional identity/failure cases and VM proof required |
+| Additional distro support | Planned additions include Kubuntu, Fedora KDE, openSUSE, Ubuntu Server and Debian netinst | Catalog/recipe work in progress; no installation claim yet |
+
+## Baseline distro families and editions
+
+The Windows source catalog contains elementary OS, Ubuntu, Ubuntu Budgie, Xubuntu,
+Lubuntu, Ubuntu Cinnamon, Ubuntu Unity, Edubuntu, Ubuntu Studio, Linux Mint
+Cinnamon/MATE/Xfce, Pop!_OS, Zorin OS, Debian, Fedora Workstation, Ultramarine,
+CachyOS, Arch Linux and Omarchy.
+
+Firmware, encryption, installer mode and second-disk restrictions remain explicit.
+A catalog entry or imported implementation is not evidence that this project's build
+successfully installed that release. See `PARITY-PLAN.md` for acceptance criteria.
+
+## Evidence rules
+
+Report preparation, installer boot, installed-OS boot, incumbent-data preservation,
+cleanup/recovery, Secure Boot and encryption cases separately. Store tool versions,
+ISO fingerprints, virtual-disk configuration, screenshots and test results with each case.
+Never promote a mocked test, detected kernel or successful executable build to install proof.

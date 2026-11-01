@@ -187,16 +187,16 @@ never partition a real disk or write firmware variables.
 
 The original Windows-on-Linux procedure has a real hardware case study. The generalized
 phases changed since that run and still need disposable VM and hardware validation.
-Linux ISO loopback staging remains beta. A Windows-native frontend, automatic ISO downloads,
-automatic cleanup/undo, second-disk placement, ext4 shrink, and whole-disk replacement are
-not implemented. See [the Hop comparison](docs/HOP-COMPARISON.md) for scope and reasons.
+Linux ISO loopback staging remains beta. The Windows-native application now builds locally;
+its installation matrix is under validation. Automatic downloads, storage placement and
+cleanup are being integrated across platforms. Linux ext4 shrink and broader installation
+coverage remain in development. See [coverage and validation](docs/COVERAGE.md) for evidence.
 
-## Inspiration and recovery
+## Recovery and licensing
 
-[Hop](https://github.com/Arjun-Ingole/hop) by Arjun Ingole inspired the readiness,
-verification, installer guidance and recovery improvements. Its Windows engine is not
-included or executed here. See [attribution](THIRD_PARTY_NOTICES.md),
-[recovery](docs/RECOVERY.md), and [security reporting](SECURITY.md).
+See [recovery](docs/RECOVERY.md), [security reporting](SECURITY.md), and
+[third-party licenses](THIRD_PARTY_NOTICES.md). The application and its build/test tools
+are open-source. Windows media remains separately licensed and is not redistributed.
 
 ## Contributing
 
