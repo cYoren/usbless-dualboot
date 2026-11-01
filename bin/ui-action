@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Runs inside a visible terminal. Password input stays with sudo on the TTY.
+set -uo pipefail
+[[ $# -ge 3 ]] || exit 2
+ENGINE=$1; STATE=$2; ACTION=$3; shift 3
+[[ $STATE == /* && $ENGINE == /* && -x $ENGINE ]] || exit 2
+umask 077
+mkdir -p "$STATE"
+CONFIG="$STATE/config.json"
+case "$ACTION" in
+  plan) [[ $# == 4 ]] || exit 2; args=(plan --add "$1" --iso "$2" --linux-new-size "$3" --write); [[ -z $4 ]] || args+=(--sha256 "$4") ;;
+  shrink) args=(shrink) ;;
+  stage) args=(stage) ;;
+  boot-installer) args=(boot --installer) ;;
+  restore) args=(boot --restore) ;;
+  cancel) args=(boot --cancel) ;;
+  windows) args=(windows --add) ;;
+  doctor) args=(doctor) ;;
+  *) printf 'Unknown action\n' >&2; exit 2 ;;
+esac
+printf '%s\n' "$$" > "$STATE/running"
+trap 'rm -f "$STATE/running"' EXIT
+printf '\nUSBless Dualboot\nReview the action shown below. sudo will ask for your password here.\n\n'
+printf '%q ' "$ENGINE" "${args[@]}"; printf '\n\n'
+sudo -- env USBDB_CONFIG="$CONFIG" USBDB_STATE_DIR="$STATE" "$ENGINE" "${args[@]}" 2>&1 | tee "$STATE/action.log"
+result=${PIPESTATUS[0]}
+if [[ $ACTION == plan && $result == 0 ]]; then cp -- "$STATE/action.log" "$STATE/plan.log"; fi
+# Keep the root-owned plan private. Only a non-secret status summary is exported.
+status=$(sudo -n -- env USBDB_CONFIG="$CONFIG" USBDB_STATE_DIR="$STATE" "$ENGINE" status --json 2>/dev/null) || status='{"state":"unavailable","next":"Read the terminal output and refresh the checks."}'
+doctor=$(sudo -n -- env USBDB_CONFIG="$CONFIG" USBDB_STATE_DIR="$STATE" "$ENGINE" doctor --json 2>/dev/null) || true
+[[ -n $doctor ]] || doctor='{"ready":false,"checks":[],"blockers":1}'
+tmp=$(mktemp "$STATE/view.json.XXXXXX")
+if jq -n --argjson status "$status" --argjson doctor "$doctor" --argjson code "$result" \
+    --arg action "$ACTION" --arg revision "$(date +%s%N)" '{status:$status,doctor:$doctor,exit_code:$code,action:$action,revision:$revision}' > "$tmp"; then
+  mv "$tmp" "$STATE/view.json"
+else
+  rm -f "$tmp"
+fi
+printf '\nAction finished (exit %s). You can return to USBless Dualboot.\n' "$result"
+exit "$result"

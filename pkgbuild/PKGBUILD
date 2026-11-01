@@ -1,0 +1,33 @@
+pkgname=usbless-dualboot
+pkgver=0.2.0
+pkgrel=1
+pkgdesc='Prepare a dual boot from your internal drive, with a native guided interface'
+arch=('x86_64')
+url='https://github.com/cYoren/usbless-dualboot'
+license=('MIT')
+depends=('bash' 'jq' 'util-linux' 'coreutils' 'qt6-base' 'qt6-declarative' 'qt6-wayland' 'xdg-desktop-portal' 'efibootmgr' 'sudo')
+makedepends=('gcc' 'make')
+optdepends=('kitty: visible terminal for privileged actions' 'wimlib: Windows installer preparation' 'dosfstools: FAT32 installer formatting' 'rsync: Windows file copy verification' 'btrfs-progs: Btrfs shrinking' 'cryptsetup: LUKS support' 'grub: Linux ISO staging' 'exfatprogs: carrier for large Linux ISOs' 'sbctl: optional Secure Boot setup')
+source=()
+sha256sums=()
+
+build() {
+  cd "$startdir/.."
+  ./bin/build-ui
+}
+
+package() {
+  cd "$startdir/.."
+  install -Dm755 build/usbless "$pkgdir/usr/bin/usbless"
+  install -Dm755 bin/usbless-dualboot "$pkgdir/usr/lib/usbless-dualboot/bin/usbless-dualboot"
+  install -Dm755 bin/ui-action "$pkgdir/usr/lib/usbless-dualboot/bin/ui-action"
+  for script in lib/*.sh; do install -Dm755 "$script" "$pkgdir/usr/lib/usbless-dualboot/$script"; done
+  ln -s /usr/lib/usbless-dualboot/bin/usbless-dualboot "$pkgdir/usr/bin/usbless-dualboot"
+  install -Dm644 assets/raccoon.png "$pkgdir/usr/share/pixmaps/usbless.png"
+  install -Dm644 pkgbuild/usbless.desktop "$pkgdir/usr/share/applications/usbless.desktop"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 THIRD_PARTY_NOTICES.md "$pkgdir/usr/share/licenses/$pkgname/THIRD_PARTY_NOTICES.md"
+  for doc in README.md llms.txt SKILL.md docs/RECOVERY.md docs/SAFETY.md; do
+    install -Dm644 "$doc" "$pkgdir/usr/share/doc/$pkgname/$doc"
+  done
+}

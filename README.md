@@ -1,5 +1,7 @@
 # usbless-dualboot
 
+<p align="center"><img src="docs/screenshots/desktop.png" alt="The native USBless Dualboot app showing its raccoon mascot, storage overview and readiness checklist with sample data" width="1100"></p>
+
 [![CI](https://github.com/cYoren/usbless-dualboot/actions/workflows/ci.yml/badge.svg)](https://github.com/cYoren/usbless-dualboot/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -47,6 +49,22 @@ The tool is organized around which OS you already have and which one you are add
 - A Windows 11 ISO (official).
 - Tools: `parted`/`sfdisk`, `wimlib`, `dosfstools`, `rsync`, plus `cryptsetup`/`btrfs-progs` when encrypted.
 
+## Graphical app
+
+The native Linux app walks through PC checks, ISO selection, plan review, preparation,
+and finishing after installation. It includes English/Portuguese, the raccoon mascot,
+live desktop accent colors, keyboard navigation and layouts for narrow windows.
+
+```bash
+./bin/build-ui
+./build/usbless
+```
+
+Use `./build/usbless --demo` for a safe preview with sample storage and disk actions disabled.
+On Arch/Omarchy, `./bin/install-ui` builds the package and adds **USBless Dualboot** to the
+launcher. Passwords are entered in a separate visible terminal. See [GUI guide](docs/GUI.md),
+[tablet preview](docs/screenshots/tablet.png) and [narrow-window preview](docs/screenshots/phone.png).
+
 ## Quickstart
 
 ```bash
@@ -54,7 +72,7 @@ The tool is organized around which OS you already have and which one you are add
 sudo ./bin/usbless-dualboot probe
 
 # 2. Review a concrete plan and save it as this tool's config
-./bin/usbless-dualboot plan --iso ~/Downloads/Win11.iso --linux-new-size 1526G --write
+sudo ./bin/usbless-dualboot plan --iso "$HOME/Downloads/Win11.iso" --linux-new-size 1526G --write
 
 # 3. Free space (guarded; may ask you to reboot)
 sudo ./bin/usbless-dualboot shrink
@@ -80,21 +98,55 @@ sudo ./bin/usbless-dualboot secureboot --verify
 | Command | Purpose |
 |---|---|
 | `probe` | Detect disks, partitions, filesystems, encryption, bootloader, firmware, Secure Boot, TPM. `--json`. |
+| `doctor` | Read-only readiness checks with blockers and next actions. `--json`; nonzero if blocked. |
+| `verify` | Fingerprint a local ISO, or verify it against a publisher's SHA-256. `--json`. |
 | `plan` | Print the exact shrink/partition plan. Changes nothing. |
+| `status` | Read saved progress, interrupted phase, backup location and next step. `--json`. |
+| `guide` | Installer choices tied to the saved disk and sector ranges; recovery guidance. |
 | `shrink` | Back up GPT + LUKS header, scrub, shrink filesystem → LUKS → partition. |
 | `stage` | Create the FAT32 installer partition, copy the ISO, split `install.wim`. |
 | `boot` | Register a one-time UEFI entry; restore the default boot order later. |
 | `windows` | Add/remove a Windows entry in the boot menu. |
 | `secureboot` | `--prep` / `--enroll` / `--verify`: sign the Linux boot chain (sbctl) and enroll keys. |
 
-Global flags: `--json`, `--dry-run`, `--yes`, `--help`, `--version`.
+Options are command-specific: use `<command> --help`. All mutating phases have `--dry-run`.
+`--yes` and a global `--json` are not implemented. `boot --cancel` clears a pending BootNext
+without deleting boot entries or partitions.
+
+## Verify, inspect, then act
+
+```bash
+./bin/usbless-dualboot verify --iso ~/Downloads/Win11.iso
+./bin/usbless-dualboot probe --json
+./bin/usbless-dualboot doctor --json
+./bin/usbless-dualboot status --json
+```
+
+To verify authenticity, add `--sha256` with the 64-character hash from the OS publisher,
+either to `verify` or `plan`. Without a publisher hash, the tool saves a fingerprint to
+detect later changes; it does **not** claim the download is authentic.
+
+Save a plan to a single explicit path so ordinary and privileged commands use the same file:
+
+```bash
+sudo ./bin/usbless-dualboot plan --iso "$HOME/Downloads/Win11.iso" --linux-new-size 1526G --write
+sudo ./bin/usbless-dualboot doctor
+sudo ./bin/usbless-dualboot shrink --dry-run
+# Review and confirm the plan before running shrink without --dry-run.
+```
+
+The size is an example, not a recommendation for your disk. A normal-user `plan --write`
+saves `./usbless-dualboot.json`; later commands need that same path through `USBDB_CONFIG`.
+For example, `sudo env USBDB_CONFIG="$PWD/usbless-dualboot.json" ./bin/usbless-dualboot status`.
+Use `guide` before rebooting into the installer and `status` after returning to Linux.
+No command automatically reboots the computer.
 
 ## Supported
 
 | Area | Supported |
 |---|---|
 | Firmware | UEFI (GPT). BIOS is out of scope. |
-| Filesystems | Btrfs (online shrink), ext4 (offline shrink), LUKS2 on top of either |
+| Filesystems | Single-device Btrfs online shrink, optionally LUKS. ext4 is detected but automatic offline shrink is not implemented. |
 | Bootloaders | Limine, GRUB, systemd-boot (menu entry + ordering) |
 | Secure Boot | Custom keys via `sbctl`; keeps Microsoft keys so Windows still boots |
 | Distros | Any Arch-based or mainstream distro; Debian/Fedora tool mapping documented in `docs/DESIGN.md` |
@@ -107,10 +159,11 @@ template.
 
 ## Safety
 
-- Every phase takes backups (GPT, LUKS header) and refuses to run if disk identity, sizes, UUIDs, or health checks differ from the probe.
+- Storage phases compare the planned disk GUID, capacity, Linux partition UUID and start. Staging refuses overlapping partitions.
+- Shrink and stage save GPT backups and the LUKS header when encrypted. Backups and saved plans use private permissions.
 - Shrinking is ordered filesystem → encryption mapping → partition, never the reverse.
-- Phases are idempotent and logged; you can stop and resume.
-- If a boot fails, disabling Secure Boot in firmware always gets you back.
+- Completed shrink/stage phases refuse to repeat. An interrupted phase blocks further storage and boot changes until reviewed.
+- Disabling Secure Boot can recover an unsigned-loader failure. It cannot repair damaged storage.
 
 See `docs/SAFETY.md`.
 
@@ -120,21 +173,30 @@ This repo is designed to be used by coding agents:
 
 - `llms.txt` — one-file project brief and entry points.
 - `SKILL.md` — an agent skill describing when and how to use the tool.
-- `--json` output and `--dry-run` on every mutating command.
+- `probe`, `doctor`, `verify`, `status` offer JSON; mutating phases offer `--dry-run`.
 
 An agent should always run `probe` and `plan` first, show the user the plan, and only then run `shrink`.
 
 ## Status
 
-Early. `probe` and `plan` are functional. The exact, working scripts from the first real-world
-run are in `examples/reference-omarchy/` and are the porting source for the generalized
-`lib/*.sh` phases. `make lint` and `make test` pass.
+Version 0.2 adds a native graphical app, readiness checks, SHA-256 verification, progress reporting, installer
+instructions, interrupted-phase protection, GPT identity checks and one-time boot recovery.
+`make test` runs host smoke checks and isolated regressions with mocked firmware/privilege
+handoff. `make test-ui` compiles Qt tests and drives the actual interface offscreen. Tests
+never partition a real disk or write firmware variables.
 
-Roadmap:
-1. Generalize `shrink` / `stage` / `boot` / `windows` / `secureboot` from the reference run.
-2. Add ext4 and GRUB/systemd-boot coverage.
-3. Add a `probe --write-config` state file so phases never guess device names.
-4. Add integration tests with loopback disks.
+The original Windows-on-Linux procedure has a real hardware case study. The generalized
+phases changed since that run and still need disposable VM and hardware validation.
+Linux ISO loopback staging remains beta. A Windows-native frontend, automatic ISO downloads,
+automatic cleanup/undo, second-disk placement, ext4 shrink, and whole-disk replacement are
+not implemented. See [the Hop comparison](docs/HOP-COMPARISON.md) for scope and reasons.
+
+## Inspiration and recovery
+
+[Hop](https://github.com/Arjun-Ingole/hop) by Arjun Ingole inspired the readiness,
+verification, installer guidance and recovery improvements. Its Windows engine is not
+included or executed here. See [attribution](THIRD_PARTY_NOTICES.md),
+[recovery](docs/RECOVERY.md), and [security reporting](SECURITY.md).
 
 ## Contributing
 

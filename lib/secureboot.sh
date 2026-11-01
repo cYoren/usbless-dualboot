@@ -5,32 +5,46 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=common.sh
 source "$HERE/common.sh"
 
-MODE=""
+MODE=""; DRY=0
 while (($#)); do
   case "$1" in
     --prep)   MODE=prep; shift ;;
     --enroll) MODE=enroll; shift ;;
     --verify) MODE=verify; shift ;;
-    -h|--help) echo "usage: usbless-dualboot secureboot (--prep | --enroll | --verify)"; exit 0 ;;
+    --dry-run) DRY=1; shift ;;
+    -h|--help) echo "usage: usbless-dualboot secureboot (--prep | --enroll | --verify) [--dry-run]"; exit 0 ;;
     *) die "unknown option: $1" ;;
   esac
 done
 [[ -n $MODE ]] || die "choose --prep, --enroll, or --verify"
 cfg_exists || die "no plan/config"
+[[ -z $(cfg_get '.phase_in_progress // empty') ]] || die "unfinished phase; inspect status first"
+if ((DRY)); then
+  log "dry-run: Secure Boot $MODE for $(cfg_get .bootloader) at $(cfg_get .esp_mount); no changes made"
+  log 'Keep the Windows BitLocker recovery key before changing firmware keys or state.'
+  exit 0
+fi
 need_root
+if [[ $MODE != verify ]]; then acquire_lock; fi
+assert_esp_mounted
 
 ESP_MOUNT=$(cfg_get .esp_mount)
 BOOTLOADER=$(cfg_get .bootloader)
 
 sign_targets() {
   local f
-  for f in "$ESP_MOUNT"/EFI/limine/*.efi "$ESP_MOUNT"/EFI/BOOT/BOOTX64.EFI "$ESP_MOUNT"/EFI/Linux/*.efi; do
-    [[ -f $f ]] && sbctl sign -s "$f"
+  local count=0
+  for f in "$ESP_MOUNT"/EFI/limine/*.efi "$ESP_MOUNT"/EFI/BOOT/BOOTX64.EFI "$ESP_MOUNT"/EFI/Linux/*.efi \
+    "$ESP_MOUNT"/EFI/systemd/*.efi "$ESP_MOUNT"/EFI/grub/*.efi "$ESP_MOUNT"/EFI/GRUB/*.efi \
+    "$ESP_MOUNT"/EFI/usbless/*.efi; do
+    if [[ -f $f ]]; then sbctl sign -s "$f"; count=$((count + 1)); fi
   done
+  ((count > 0)) || die "no Linux EFI signing targets found on the planned ESP"
 }
 
 case "$MODE" in
   prep)
+    warn "Have the Windows BitLocker/Device Encryption recovery key before changing keys or firmware settings."
     pkg_install sbctl
     need_cmd sbctl
     if [[ -d /var/lib/sbctl/keys ]]; then
@@ -66,8 +80,7 @@ case "$MODE" in
     ;;
   verify)
     need_cmd sbctl
-    sbctl status || true
-    bootctl status 2>/dev/null | grep -i 'secure boot' || true
-    sbctl verify 2>&1 | grep -E 'limine|omarchy|BOOTX64|grub|Linux' || true
+    sbctl status
+    sbctl verify
     ;;
 esac

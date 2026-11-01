@@ -53,10 +53,10 @@ REGISTRY_ENTRY = os.path.join(REPO, "integrations", "cli-anything", "registry-en
 REGISTRY_SCHEMA = os.path.join(REPO, "integrations", "cli-anything", "schema", "registry-entry.schema.json")
 MANIFEST = os.path.join(REPO, "integrations", "cli-anything", "manifest.json")
 
-REQUIRED_COMMANDS = ["probe", "plan", "shrink", "stage", "boot", "windows", "secureboot"]
+REQUIRED_COMMANDS = ["probe", "doctor", "verify", "status", "guide", "plan", "shrink", "stage", "boot", "windows", "secureboot"]
 DESTRUCTIVE_COMMANDS = ["shrink", "stage"]
 # Only these commands implement --json in lib/; anything else claiming it is a lie.
-JSON_COMMANDS = {"probe", "plan"}
+JSON_COMMANDS = {"probe", "doctor", "verify", "status"}
 
 _TYPE_CHECKS = {
     "object": lambda v: isinstance(v, dict),

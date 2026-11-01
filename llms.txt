@@ -4,7 +4,7 @@
 
 Project type: system administration CLI (bash).
 License: MIT.
-Status: scaffold (probe/plan functional; other phases being ported).
+Status: 0.2.0, guarded storage phases with isolated regression tests; generalized installer phases still need VM/hardware validation.
 
 ## What it does
 - Probes disks, partitions, filesystems, encryption (LUKS), bootloader (Limine/GRUB/systemd-boot), firmware (UEFI/TPM/Secure Boot).
@@ -22,17 +22,24 @@ Status: scaffold (probe/plan functional; other phases being ported).
 - bin/usbless-dualboot - CLI dispatcher (help, version, subcommands).
 - lib/probe.sh - read-only detection with --json.
 - lib/plan.sh - plan generation.
+- src/Main.qml, src/backend.cpp - optional native Qt Quick app using the same engine.
+- bin/build-ui / bin/test-ui / bin/install-ui - build, offscreen GUI tests and Arch package installation.
+- docs/GUI.md - graphical workflow, state/privilege model, keyboard shortcuts and validation limits.
 
 ## Directions
 - add-windows (implemented): Linux machine gains Windows.
-- add-linux (planned): Windows machine gains Linux; see docs/DIRECTIONS.md.
+- add-linux (beta): Linux-hosted GRUB loopback carrier; see docs/DIRECTIONS.md. Not a Windows-native app.
 
 ## Commands
   usbless-dualboot probe [--json]
+  usbless-dualboot doctor [--json]
+  usbless-dualboot verify --iso PATH [--sha256 HASH] [--json]
+  usbless-dualboot status [--json]
+  usbless-dualboot guide
   usbless-dualboot plan --add windows|linux --iso PATH --linux-new-size SIZE [--write]
   usbless-dualboot shrink [--dry-run]
   usbless-dualboot stage [--dry-run]
-  usbless-dualboot boot (--installer | --restore)
+  usbless-dualboot boot (--installer | --restore | --cancel) [--dry-run]
   usbless-dualboot windows (--add | --remove)
   usbless-dualboot secureboot (--prep | --enroll | --verify)
 
@@ -42,7 +49,9 @@ Status: scaffold (probe/plan functional; other phases being ported).
 3. Mutating commands must be run with sudo in a visible terminal (the user enters the password).
 4. Take backups (GPT, LUKS header) before any partition or encryption change.
 5. If the user is dual-booting Windows, warn about BitLocker/Device Encryption recovery keys before changing Secure Boot keys or state.
-6. If a boot fails, instruct the user to disable Secure Boot in firmware; that always recovers.
+6. Disabling Secure Boot may recover unsigned-loader failures; it does not repair storage damage.
+7. Use one config across runs. Inspect interrupted phases and backups; do not blindly retry.
+8. No automatic undo, ext4 shrink, second-disk planning or Windows-native frontend. See docs/HOP-COMPARISON.md.
 
 ## Environment assumptions
 - Linux in UEFI mode, GPT disk.

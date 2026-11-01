@@ -2,7 +2,7 @@
   "$schema": "./manifest.schema.json",
   "adapter": {
     "name": "cli-anything-usbless-dualboot",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "registry_name": "usbless-dualboot",
     "harness_type": "external-cli-wrapper",
     "wraps": {
@@ -23,9 +23,21 @@
   "requirements": {
     "os": "linux",
     "firmware": "uefi",
-    "root_required_for": ["shrink", "stage", "boot", "windows", "secureboot"],
-    "commands": ["bash", "jq", "lsblk", "findmnt", "sfdisk"],
-    "filesystem_note": "Online shrink requires a btrfs root; the CLI refuses other filesystems unless it can do it offline."
+    "root_required_for": [
+      "shrink",
+      "stage",
+      "boot",
+      "windows",
+      "secureboot"
+    ],
+    "commands": [
+      "bash",
+      "jq",
+      "lsblk",
+      "findmnt",
+      "sfdisk"
+    ],
+    "filesystem_note": "Automatic shrink supports single-device Btrfs with optional LUKS. Automatic ext4 shrink is not implemented."
   },
   "exit_codes": {
     "0": "success",
@@ -33,11 +45,41 @@
   },
   "exit_code_notes": "Exit codes were read from bin/usbless-dualboot and lib/*.sh: the union of explicit `exit N` statements is {0, 1}. Any claim of richer codes would be fabricated.",
   "global_options": [
-    { "flag": "--json", "meaning": "machine-readable output where supported", "supported_by": ["probe", "plan"] },
-    { "flag": "--dry-run", "meaning": "print actions without executing them", "supported_by": ["plan", "shrink", "stage", "boot", "windows", "secureboot"] },
-    { "flag": "--yes", "meaning": "assume yes (non-interactive)", "supported_by": ["shrink", "stage"] },
-    { "flag": "--help", "meaning": "usage text; exits 0", "supported_by": ["*"] },
-    { "flag": "--version", "meaning": "print version; exits 0", "supported_by": ["*"] }
+    {
+      "flag": "--json",
+      "meaning": "Machine-readable output on supported discovery commands",
+      "supported_by": [
+        "probe",
+        "doctor",
+        "verify",
+        "status"
+      ]
+    },
+    {
+      "flag": "--dry-run",
+      "meaning": "Print/check planned actions without disk or firmware writes",
+      "supported_by": [
+        "shrink",
+        "stage",
+        "boot",
+        "windows",
+        "secureboot"
+      ]
+    },
+    {
+      "flag": "--help",
+      "meaning": "Command-specific usage",
+      "supported_by": [
+        "*"
+      ]
+    },
+    {
+      "flag": "--version",
+      "meaning": "Dispatcher-only version option",
+      "supported_by": [
+        "dispatcher"
+      ]
+    }
   ],
   "commands": [
     {
@@ -50,7 +92,14 @@
       "danger": "none",
       "destructive": false,
       "reversible": true,
-      "reads": ["/sys/firmware/efi", "/dev/tpm*", "/sys/firmware/efi/efivars/SecureBoot-*", "/sys/firmware/efi/efivars/SetupMode-*", "findmnt /", "lsblk"],
+      "reads": [
+        "/sys/firmware/efi",
+        "/dev/tpm*",
+        "/sys/firmware/efi/efivars/SecureBoot-*",
+        "/sys/firmware/efi/efivars/SetupMode-*",
+        "findmnt /",
+        "lsblk"
+      ],
       "json_output_schema": {
         "uefi": "enum[yes,no]",
         "tpm2": "enum[yes,no]",
@@ -60,21 +109,71 @@
         "root_source": "string",
         "root_fstype": "string",
         "encryption": "enum[no,luks]",
-        "lsblk": "object — the raw `lsblk -J -o NAME,PATH,SIZE,TYPE,FSTYPE,MOUNTPOINTS` document, passed through unchanged"
+        "lsblk": "lsblk --bytes --json document; SIZE values are numeric bytes."
       },
       "verified_from": "lib/probe.sh lines 25-82"
+    },
+    {
+      "name": "guide",
+      "summary": "Print installer choices and recovery guidance for the saved plan.",
+      "requires_root": false,
+      "supports_json": false,
+      "supports_dry_run": false,
+      "writes": [],
+      "danger": "none",
+      "destructive": false,
+      "reversible": true,
+      "verified_from": "lib/guide.sh"
+    },
+    {
+      "name": "status",
+      "summary": "Report saved progress, recovery metadata and next steps.",
+      "requires_root": false,
+      "supports_json": true,
+      "supports_dry_run": false,
+      "writes": [],
+      "danger": "none",
+      "destructive": false,
+      "reversible": true,
+      "verified_from": "lib/status.sh"
+    },
+    {
+      "name": "verify",
+      "summary": "Fingerprint a local ISO or compare its publisher SHA-256.",
+      "requires_root": false,
+      "supports_json": true,
+      "supports_dry_run": false,
+      "writes": [],
+      "danger": "none",
+      "destructive": false,
+      "reversible": true,
+      "verified_from": "lib/verify.sh"
+    },
+    {
+      "name": "doctor",
+      "summary": "Read-only readiness checks and actionable blockers.",
+      "requires_root": false,
+      "supports_json": true,
+      "supports_dry_run": false,
+      "writes": [],
+      "danger": "none",
+      "destructive": false,
+      "reversible": true,
+      "verified_from": "lib/doctor.sh"
     },
     {
       "name": "plan",
       "summary": "Print a concrete, reviewable plan without changing anything.",
       "requires_root": false,
-      "supports_json": true,
-      "supports_dry_run": true,
-      "writes": ["the config file at $USBDB_CONFIG only when --write is passed"],
+      "supports_json": false,
+      "supports_dry_run": false,
+      "writes": [
+        "the config file at $USBDB_CONFIG only when --write is passed"
+      ],
       "danger": "none",
       "destructive": false,
       "reversible": true,
-      "note": "Without --write this command only reads and prints. With --write it records the plan to the state directory so later phases can re-verify it.",
+      "note": "Default planning is read-only; --write saves a config and lock file. --json and --dry-run are not supported.",
       "verified_from": "lib/plan.sh"
     },
     {
@@ -83,12 +182,16 @@
       "requires_root": true,
       "supports_json": false,
       "supports_dry_run": true,
-      "writes": ["partition table of the target disk", "the filesystem on the Linux partition", "$USBDB_STATE_DIR/backups/shrink-<timestamp>/"],
+      "writes": [
+        "partition table of the target disk",
+        "the filesystem on the Linux partition",
+        "$USBDB_STATE_DIR/backups/shrink-<timestamp>/"
+      ],
       "danger": "destructive",
       "destructive": true,
       "reversible": false,
       "why_dangerous": "Rewrites the on-disk partition table and resizes a live root filesystem. It takes a partition-table backup and re-verifies disk size, disk GUID, partition start and PARTUUID before acting, and refuses on mismatch — but a successful shrink cannot be undone by the tool.",
-      "guard": "Compares current disk GUID/sectors and partition start against the recorded plan; aborts via die() (exit 1) on any mismatch.",
+      "guard": "Checks planned identity/geometry, ISO fingerprint, single-device Btrfs minimum size/health, AC power and phase state; locks and backs up before changing storage.",
       "verified_from": "lib/shrink.sh lines 42-130"
     },
     {
@@ -97,12 +200,16 @@
       "requires_root": true,
       "supports_json": false,
       "supports_dry_run": true,
-      "writes": ["partition table of the target disk", "a new FAT32 filesystem", "the ISO contents onto that partition"],
+      "writes": [
+        "partition table of the target disk",
+        "a new FAT32 filesystem",
+        "the ISO contents onto that partition"
+      ],
       "danger": "destructive",
       "destructive": true,
       "reversible": false,
       "why_dangerous": "Creates a partition and formats it. Requires the shrink phase to have already completed and re-verifies the same disk identity guards.",
-      "guard": "Requires .shrink_complete and .stage_complete markers from state; refuses if the ISO does not fit the installer partition.",
+      "guard": "Verifies planned identity, ISO fingerprint, kernel geometry and free installer range; locks and backs up before writes. A prior shrink is unnecessary if the range is already free.",
       "verified_from": "lib/stage.sh lines 46-170"
     },
     {
@@ -111,7 +218,9 @@
       "requires_root": true,
       "supports_json": false,
       "supports_dry_run": true,
-      "writes": ["UEFI NVRAM boot variables via efibootmgr"],
+      "writes": [
+        "UEFI NVRAM boot variables via efibootmgr"
+      ],
       "danger": "firmware",
       "destructive": false,
       "reversible": true,
@@ -125,7 +234,10 @@
       "requires_root": true,
       "supports_json": false,
       "supports_dry_run": true,
-      "writes": ["ESP bootloader configuration (limine.conf, loader/loader.conf, or grub.cfg)", "a new EFI/Microsoft/Boot entry file"],
+      "writes": [
+        "ESP bootloader configuration (limine.conf, loader/loader.conf, or grub.cfg)",
+        "a new EFI/Microsoft/Boot entry file"
+      ],
       "danger": "boot-config",
       "destructive": false,
       "reversible": true,
@@ -139,7 +251,10 @@
       "requires_root": true,
       "supports_json": false,
       "supports_dry_run": true,
-      "writes": ["signatures on EFI binaries", "firmware key stores (on --enroll, interactively)"],
+      "writes": [
+        "signatures on EFI binaries",
+        "firmware key stores (on --enroll, interactively)"
+      ],
       "danger": "firmware",
       "destructive": false,
       "reversible": true,
@@ -188,13 +303,12 @@
     "not_implemented": [
       "REPL / stateful multi-operation sessions. The underlying CLI is a set of one-shot phases driven by a state directory, so there is no persistent interactive session to expose.",
       "Undo/redo. The bash CLI has no undo stack; shrink and stage are irreversible, so claiming undo would be false.",
-      "Any preview rendering. The CLI produces no visual artifacts."
+      "The adapter delegates CLI commands only. The separate native Qt app provides graphical previews."
     ],
     "not_verified": [
       "No mutating phase (shrink, stage, boot, windows, secureboot) has been executed or end-to-end tested, here or by the adapter's author: it would require real block devices and root.",
       "The registry entry has not been submitted to HKUDS/CLI-Anything; no upstream maintainer has reviewed or merged it.",
-      "This adapter has not been reviewed or adopted by CLI-Anything; `cli-hub install usbless-dualboot` does not work until the upstream registry entry is merged.",
-      "Only a local, in-checkout install was exercised (`pip install --no-deps --target <dir> .`). The published form named in install_cmd, `pip install git+https://github.com/cYoren/usbless-dualboot.git#subdirectory=integrations/cli-anything/python`, has NOT been run: the integration is not pushed to that remote yet, so the URL does not resolve."
+      "This adapter has not been reviewed or adopted by CLI-Anything; `cli-hub install usbless-dualboot` does not work until the upstream registry entry is merged."
     ]
   }
 }

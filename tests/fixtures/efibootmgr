@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -eu
+case "${1:-}" in
+  ''|-v) cat "$USBDB_TEST_ENTRIES" ;;
+  *) printf '%s\n' "$*" >> "$USBDB_TEST_BOOT_WRITES" ;;
+esac

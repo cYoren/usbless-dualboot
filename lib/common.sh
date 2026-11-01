@@ -4,6 +4,8 @@
 [[ ${USBDB_COMMON:-} == 1 ]] && return 0
 USBDB_COMMON=1
 set -Eeuo pipefail
+# Preserve the documented success/failure contract even when a tool uses richer codes.
+trap 'exit 1' ERR
 
 USBDB_STATE_DIR="${USBDB_STATE_DIR:-/var/lib/usbless-dualboot}"
 USBDB_CONFIG="${USBDB_CONFIG:-$USBDB_STATE_DIR/config.json}"
@@ -46,7 +48,7 @@ cfg_get() { need_cmd jq; cfg_exists || die "no config at $USBDB_CONFIG"; jq -r "
 cfg_set() {
   need_cmd jq; mkdir -p "$(dirname "$USBDB_CONFIG")"
   [[ -f $USBDB_CONFIG ]] || echo '{}' > "$USBDB_CONFIG"
-  local tmp; tmp=$(mktemp)
+  local tmp; tmp=$(mktemp "${USBDB_CONFIG}.XXXXXX")
   jq --arg k "$1" --arg v "$2" '.[$k] = $v' "$USBDB_CONFIG" > "$tmp" && mv "$tmp" "$USBDB_CONFIG"
 }
 cfg_dump() { need_cmd jq; cfg_exists || die "no config at $USBDB_CONFIG"; jq . "$USBDB_CONFIG"; }
@@ -54,6 +56,8 @@ cfg_dump() { need_cmd jq; cfg_exists || die "no config at $USBDB_CONFIG"; jq . "
 # --- layout detection ---
 # Sets: USBDB_ROOT_SRC, USBDB_LINUX_PART, USBDB_LINUX_MAPPER, USBDB_LINUX_FSTYPE,
 #       USBDB_DISK, USBDB_ESP_PART, USBDB_ESP_MOUNT, USBDB_BOOTLOADER.
+# Public detection outputs are consumed by scripts sourcing this library.
+# shellcheck disable=SC2034
 usbdb_detect() {
   local src parent disk esp_mount dev name
   src=$(findmnt -n -o SOURCE / 2>/dev/null || true)
@@ -100,8 +104,8 @@ usbdb_detect() {
 
 size_to_sectors() { # "1526G" | "12GiB" | "500M" -> sectors (512); bare letters are binary (GiB)
   local s="$1" num unit mult
-  [[ $s =~ ^([0-9]+)([KMGTPE])?i?B?$ ]] || die "cannot parse size: $s"
-  num=${BASH_REMATCH[1]}
+  [[ $s =~ ^([0-9]{1,7})([KMGTP])?(iB|B)?$ ]] || die "cannot parse size: $s"
+  num=$((10#${BASH_REMATCH[1]}))
   unit=${BASH_REMATCH[2]:-}
   case "$unit" in
     "")  mult=1 ;;
@@ -112,7 +116,11 @@ size_to_sectors() { # "1526G" | "12GiB" | "500M" -> sectors (512); bare letters 
     P)   mult=$((1024*1024*1024*1024*1024)) ;;
     *)   mult=1 ;;
   esac
+  (( num > 0 && num <= 9223372036854775807 / mult )) || die "size out of range: $s"
   printf '%s' $(( num * mult / 512 ))
 }
 
 json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+
+# Safety helpers are shared by planning, readiness checks and mutating phases.
+source "$(dirname "${BASH_SOURCE[0]}")/safety.sh"

@@ -1,0 +1,5 @@
+<RCC><qresource prefix="/">
+  <file>Main.qml</file>
+  <file alias="raccoon.png">../assets/raccoon.png</file>
+  <file alias="i18n/pt.json">i18n/pt.json</file>
+</qresource></RCC>

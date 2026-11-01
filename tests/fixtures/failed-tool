@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Simulates a dependency with a tool-specific failure code.
+exit 37

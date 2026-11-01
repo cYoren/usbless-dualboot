@@ -20,7 +20,9 @@ Status: implemented and proven (see `examples/reference-omarchy/`).
 
 ## `add-linux` (beta)
 
-A machine gains a Linux install, using the internal disk as the carrier (no USB).
+A Linux-hosted workflow stages another Linux installer, using the internal disk as the
+carrier (no USB). This Bash CLI cannot run directly in Windows. A Windows-native frontend
+like Hop's is not implemented.
 
 This is harder than the reverse:
 
@@ -31,7 +33,7 @@ This is harder than the reverse:
    This tool's beta implementation uses **GRUB loopback**:
 
    ```
-   plan --add linux --iso <linux.iso> --write
+   sudo plan --add linux --iso <linux.iso> --write
    stage --os linux        # FAT32/exFAT carrier + ISO + standalone GRUB EFI + UEFI entry
    boot --installer        # or pick 'Linux Installer' in the firmware menu
    ```
@@ -44,10 +46,13 @@ This is harder than the reverse:
    - builds a standalone GRUB EFI with an embedded loopback entry and installs it to the ESP,
    - registers a `Linux Installer` UEFI entry.
 
-   Status: beta. Distro coverage is best-effort (Ubuntu/Mint/Pop via casper, Debian live,
-   Arch, Fedora). Large or unusual ISOs may need manual kernel/initrd parameters.
-   Secure Boot: the generated GRUB is **unsigned**; disable Secure Boot for the install or sign
-   it with your keys (`secureboot --prep` signs ESP binaries it recognises).
+   Status: beta. Automatic parameter candidates are casper (such as Ubuntu/Mint), Debian
+   live and Arch. These need release-specific boot validation. Fedora, openSUSE, NixOS,
+   Gentoo and generic layouts require reviewed explicit `.linux_params`; finding a kernel
+   alone does not establish boot support. Kernel/initrd overrides must name files in the ISO.
+   Secure Boot: the generated GRUB is **unsigned**. Actual staging refuses if Secure Boot
+   is enabled or unreadable. `--dry-run` does not mount the ISO or alter firmware; full
+   source inspection and distro validation happen before actual partition writes.
 
 Contributions welcome: extend the family table in `lib/stage-linux.sh`.
 

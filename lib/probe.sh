@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Read-only detection of disks, filesystems, encryption, bootloader, and firmware.
 set -Eeuo pipefail
+trap 'exit 1' ERR
 
 JSON=0
 for a in "$@"; do
@@ -53,7 +54,7 @@ if lsblk -nro FSTYPE 2>/dev/null | grep -qx 'crypto_LUKS'; then
 fi
 
 # --- disks ---
-disks_json=$(lsblk -J -o NAME,PATH,SIZE,TYPE,FSTYPE,MOUNTPOINTS 2>/dev/null || echo '{}')
+disks_json=$(lsblk -b -J -o NAME,PATH,SIZE,TYPE,FSTYPE,MOUNTPOINTS 2>/dev/null || echo '{}')
 
 if ((JSON)); then
   cat <<EOF
@@ -88,4 +89,4 @@ Block devices:
 EOF
 lsblk -o NAME,SIZE,TYPE,FSTYPE,LABEL,MOUNTPOINTS 2>/dev/null || true
 echo
-echo "Next: usbless-dualboot plan --iso <Windows.iso> [--windows-size 320GiB]"
+echo "Next: usbless-dualboot doctor; then plan --iso <Windows.iso> --linux-new-size <SIZE>"

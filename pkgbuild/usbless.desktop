@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=USBless Dualboot
+Name[pt_BR]=USBless Dualboot
+Comment=Add a second operating system without a USB stick
+Comment[pt_BR]=Adicione um segundo sistema sem precisar de pendrive
+Exec=usbless
+Icon=usbless
+Terminal=false
+Categories=System;
+StartupWMClass=usbless

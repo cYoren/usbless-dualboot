@@ -64,9 +64,9 @@ class TestManifest(unittest.TestCase):
         self.assertFalse(mf.command("probe")["requires_root"])
         self.assertFalse(mf.command("plan")["requires_root"])
 
-    def test_only_probe_and_plan_claim_json(self):
+    def test_only_discovery_commands_claim_json(self):
         claiming = [c["name"] for c in mf.commands() if c.get("supports_json")]
-        self.assertEqual(sorted(claiming), ["plan", "probe"])
+        self.assertEqual(sorted(claiming), ["doctor", "probe", "status", "verify"])
 
     def test_exit_codes_are_exactly_zero_and_one(self):
         codes = sorted(mf.load_manifest()["exit_codes"].keys())

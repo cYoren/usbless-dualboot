@@ -2,10 +2,18 @@
 /var/
 *.log
 *.bak
+/usbless-dualboot.json
+*.json.lock
 
 # OS noise
 .DS_Store
 Thumbs.db
+/build/
+/build-tests/
+/pkgbuild/pkg/
+/pkgbuild/src/
+/pkgbuild/*.pkg.tar.*
+/pkgbuild/*.log
 
 # editor
 *.swp

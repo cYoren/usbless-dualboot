@@ -5,7 +5,7 @@
  * Nothing here reads the host disk, touches /dev, shells out, or opens a socket.
  *
  * The probe schema mirrors the exact JSON emitted by `usbless-dualboot probe --json`
- * (see lib/probe.sh) and the plan schema mirrors `usbless-dualboot plan --json`
+ * (see lib/probe.sh) and the plan schema reads the config saved by `usbless-dualboot plan --write`
  * (see lib/plan.sh). Values that the bash tool emits as strings are typed as
  * strings here on purpose — loosening them to numbers would silently accept a
  * probe the real CLI never produces.
@@ -42,7 +42,7 @@ const sectorsStr = z.string().regex(/^\d+$/, "must be a decimal sector count (th
 /** The plan/config document written by `plan --write` (see examples/config.example.json). */
 export const planSchema = z
   .object({
-    plan_id: z.string().optional().describe("sha256 plan identity hash, present only in `plan --json` output"),
+    plan_id: z.string().optional().describe("Optional external plan identity; the Bash planner does not currently emit plan_id"),
     direction: z.enum(["add-windows", "add-linux"]).describe("Which OS is being added"),
     disk: z.string().describe("Target disk, e.g. /dev/nvme0n1"),
     disk_sectors: sectorsStr,

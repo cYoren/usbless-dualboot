@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -eu
+case "${1:-}" in
+  probe)
+    printf '%s\n' '{"uefi":"yes","root_fstype":"btrfs","lsblk":{"blockdevices":[{"name":"wrong-first-disk","type":"disk","size":2147483648},{"name":"correct-root-disk","type":"disk","size":10737418240,"children":[{"size":1073741824,"mountpoints":["/boot"]},{"size":8589934592,"children":[{"mountpoints":["/"]}]}]}]}}'
+    ;;
+  plan)
+    printf '%s\n' "$@" > "$USBDB_TEST_RECEIVED"
+    printf 'Disk: sample only. ISO argument preserved literally.\n'
+    printf '{}\n' > "$USBDB_CONFIG"
+    ;;
+  shrink)
+    printf 'Simulated interruption, no real storage involved.\n'
+    exit 42 ;;
+  status)
+    printf '{"state":"planned","direction":"add-windows","disk":"sample"}\n' ;;
+  doctor)
+    printf '{"ready":true,"blockers":0,"checks":[]}\n' ;;
+  *) exit 92 ;;
+esac

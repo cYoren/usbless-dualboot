@@ -5,12 +5,13 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=common.sh
 source "$HERE/common.sh"
 
-MODE=""
+MODE=""; DRY=0
 while (($#)); do
   case "$1" in
     --add)    MODE=add; shift ;;
     --remove) MODE=remove; shift ;;
-    -h|--help) echo "usage: usbless-dualboot windows (--add | --remove)"; exit 0 ;;
+    --dry-run) DRY=1; shift ;;
+    -h|--help) echo "usage: usbless-dualboot windows (--add | --remove) [--dry-run]"; exit 0 ;;
     *) die "unknown option: $1" ;;
   esac
 done
@@ -21,7 +22,14 @@ BOOTLOADER=$(cfg_get .bootloader)
 ESP_MOUNT=$(cfg_get .esp_mount)
 WIN_EFI="$ESP_MOUNT/EFI/Microsoft/Boot/bootmgfw.efi"
 [[ -f $WIN_EFI ]] || die "Windows Boot Manager not found at $WIN_EFI"
+[[ -z $(cfg_get '.phase_in_progress // empty') ]] || die "unfinished phase; inspect status first"
+if ((DRY)); then
+  log "dry-run: $MODE Windows menu entry for $WIN_EFI using $BOOTLOADER; no changes made"
+  exit 0
+fi
 need_root
+acquire_lock
+assert_esp_mounted
 
 label="Windows 11"
 case "$BOOTLOADER" in
@@ -65,11 +73,11 @@ menuentry 'Windows 11' {
 }
 EOF
       fi
-      have grub-mkconfig && grub-mkconfig -o /boot/grub/grub.cfg
+      need_cmd grub-mkconfig; grub-mkconfig -o /boot/grub/grub.cfg
       log "Added Windows entry to GRUB."
     else
       sed -i '/# usbless-dualboot:windows/,/^}/d' "$f" 2>/dev/null || true
-      have grub-mkconfig && grub-mkconfig -o /boot/grub/grub.cfg
+      need_cmd grub-mkconfig; grub-mkconfig -o /boot/grub/grub.cfg
       log "Removed Windows entry from GRUB."
     fi
     ;;

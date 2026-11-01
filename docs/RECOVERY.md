@@ -1,0 +1,62 @@
+# Progress and recovery
+
+Always use the same config path used by the plan. `USBDB_CONFIG` overrides the default
+`/var/lib/usbless-dualboot/config.json`; a non-root `plan --write` saves a local JSON file.
+Do not create a new plan over an interrupted installation.
+
+## Before rebooting
+
+Run `status`, `guide`, and `boot --installer --dry-run`. Check the disk, target region and
+installer identity. BootNext is one-time: returning to Linux does not prove the installer
+ran. The tool never reboots automatically and never infers installation success.
+
+## Returned to the original OS
+
+Open the firmware boot menu and select the staged installer. If it is missing, inspect
+`efibootmgr -v` and `status`; `boot --installer --dry-run` requires one matching label,
+loader and GPT partition UUID. A stale entry with the same name will not be selected.
+
+For Linux loopback media, the generated GRUB is unsigned. Secure Boot must be disabled
+for actual staging. Have the Windows BitLocker recovery key before changing firmware
+security settings. Disabling Secure Boot helps an unsigned-loader failure; it cannot
+repair partition damage, missing files, incompatible ISOs or filesystem corruption.
+
+`boot --cancel` clears BootNext, including when a phase was interrupted. `boot --restore` restores surviving original boot entries
+in their saved order, then appends new entries so the newly installed OS remains available.
+Both support `--dry-run` and leave partitions intact.
+
+## Interrupted shrink or stage
+
+`status --json` reports `interrupted` and `last_backup`. Stop before rebooting or retrying.
+The persistent `phase_in_progress` marker deliberately blocks automatic re-execution.
+Review the current filesystem size, LUKS mapping, on-disk GPT, kernel partition geometry,
+mounted devices and backup files. A shrink may have completed only its first operation;
+a stage may have created or formatted a carrier before failing to copy its contents.
+
+A knowledgeable operator must reconcile actual state before clearing that marker in the
+JSON config. Clearing it is not rollback. Never reset a completion marker merely to retry.
+
+## Recovery metadata
+
+`last_backup` identifies a private directory containing:
+
+- `partition-table.sfdisk` and `partition-table.json` for the original GPT layout;
+- `gpt-primary.bin` and `gpt-secondary.bin`, for 512-byte-sector disks;
+- `luks-header.img` when the planned Linux partition uses LUKS;
+- Btrfs device statistics during shrinking.
+
+Copy recovery metadata to a second device before a real installation. Backups on the disk
+being modified do not protect against disk failure. A LUKS header backup is sensitive.
+These files are not a backup of user data.
+
+Restoring a partition table or LUKS header can itself destroy newer state. Match disk GUID,
+partition UUID/start, sector size and the correct backup generation first. Use a separate
+recovery environment when the affected filesystem cannot safely remain mounted. Generic
+blind restore commands are intentionally not supplied.
+
+## Cleanup
+
+Only consider removing the installer after booting and checking both operating systems.
+Keep recovery metadata separately. Match partition UUID and sector range to the saved
+plan, and ensure no installed OS uses that partition. A label alone proves no ownership.
+Automatic deletion, space reclamation, undo and filesystem growth are not implemented.

@@ -11,21 +11,21 @@
 
 ```
 probe -> plan -> shrink -> [reboot] -> stage -> boot --installer
-      -> (Windows Setup) -> boot --restore -> windows --add -> secureboot --setup -> cleanup
+      -> (Windows Setup) -> boot --restore -> windows --add -> optional Secure Boot workflow
 ```
 
 Each phase:
 
-- takes `--json` / `--dry-run` / `--yes` where meaningful;
+- supports `--dry-run` for mutating commands; discovery commands support `--json`;
 - reads and writes a small state file (JSON) under `/var/lib/usbless-dualboot` (root) or a
-  user-specified `--state-dir`;
-- is idempotent and logged.
+  `USBDB_STATE_DIR` / `USBDB_CONFIG` overrides;
+- records completed and interrupted shrink/stage state. Destructive retries fail closed.
 
 ## Portability
 
 | Concern | Btrfs | ext4 |
 |---|---|---|
-| Online shrink | yes (`btrfs filesystem resize`) | no (unmount required) |
+| Online shrink | single-device only (`btrfs filesystem resize`) | not implemented (unmount required) |
 | Health check | `btrfs scrub` + `device stats` | `e2fsck -fn` |
 | Encryption | LUKS2 (`cryptsetup resize`) | same |
 

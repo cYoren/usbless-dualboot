@@ -30,4 +30,4 @@ UKIs are verified by the firmware and must also be signed.
 - **Snapshot images:** signing changes file bytes; if the bootloader pins files by hash, sign
   before regenerating the menu so recorded hashes match.
 - **dbx:** never write the revocation list; leave Microsoft's entries in place.
-- **Recovery:** disabling Secure Boot always recovers.
+- **Recovery:** disabling Secure Boot can recover an unsigned-loader failure. It does not repair damaged storage; see `RECOVERY.md`.

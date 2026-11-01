@@ -4,26 +4,33 @@ This tool performs destructive operations. It is built to fail closed.
 
 ## Policy
 
-1. **Probe before touching anything.** Every mutating phase re-reads the disk and refuses to
-   proceed if identity (disk size, partition start/size, UUIDs), mount state, or health checks
-   differ from what `probe` recorded.
-2. **Backups first.** Before any change: GPT primary + secondary sectors, `sfdisk --dump`, and a
-   full LUKS header backup. Store them under a state directory with root-only permissions.
+1. **Probe and plan before touching anything.** Storage phases compare disk capacity/GPT GUID
+   and Linux partition UUID/start/expected size with the saved plan. Staging refuses overlaps.
+   Boot menu/signing changes require the planned ESP to be mounted. These checks do not replace
+   disposable-VM validation or a backup of user data.
+2. **Backups first.** Shrink/stage save GPT primary + secondary sectors and `sfdisk --dump`.
+   Encrypted storage phases also save the LUKS header. Backups are private. Keep an independent copy
+   on another device; metadata backups on the target disk do not protect against disk failure.
 3. **Order matters.** Shrink the filesystem first, then the encryption mapping, then the
    partition. Growing reverses the order. Never shrink a partition below its filesystem.
 4. **Health checks.** Run `btrfs scrub` / `fsck` equivalents and abort on any reported error.
-5. **Idempotent phases.** Each phase writes a completion marker; re-running resumes rather than
-   repeats. A failed phase writes a `*-failed` marker and must be reviewed before rebooting.
+5. **No blind retries.** Shrink/stage write completion markers and refuse to repeat. An in-progress
+   marker persists on failure. Inspect actual storage and backups before clearing it. These
+   phases use a per-plan lock; do not use two different config files for the same disk.
 6. **No blind device names.** Resolve from `probe --json`; never assume `/dev/nvme0n1pX`.
 7. **Power.** Refuse to shrink on battery; require AC.
 
 ## Recovery
 
-- **Linux won't boot after Secure Boot enable:** disable Secure Boot in firmware. The Linux
-  loader boots unsigned. This always recovers.
+- **Unsigned loader blocked after Secure Boot enable:** disabling Secure Boot in firmware can
+  help. It does not repair damaged filesystems, partition tables or missing boot files.
 - **Bad partition table:** restore the GPT backup sectors with `sfdisk`/`dd` from the state dir.
 - **LUKS issues:** restore the header backup with `cryptsetup luksHeaderRestore`.
-- **Installer partition not needed:** it is always safe to delete once Windows works.
+- **Installer partition not needed:** confirm both OSes boot, then match its UUID/range and
+  ensure neither OS uses it. Automatic deletion or space reclamation is not implemented.
+
+Read `docs/RECOVERY.md` before attempting a restore. Use `status --json` to find saved progress
+and recovery metadata, and `guide` for installer choices.
 
 ## BitLocker / Device Encryption
 

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+mkdir -p "$ROOT/build"
+cd "$ROOT/build"
+qmake6 "$ROOT/usbless.pro"
+make -j"${USBDB_BUILD_JOBS:-4}"
+printf 'Built %s/build/usbless\n' "$ROOT"

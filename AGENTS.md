@@ -20,8 +20,8 @@ Read these first: `llms.txt` (one-file brief), `SKILL.md` (when/how to use), `do
 - Shrink order is filesystem -> LUKS -> partition. Never the reverse.
 - If Windows may be BitLocker/Device-Encryption encrypted, warn the user to have the 48-digit
   recovery key before changing Secure Boot keys or state.
-- If the machine fails to boot after a Secure Boot change, tell the user to disable Secure Boot
-  in firmware; that always recovers.
+- If Secure Boot blocks an unsigned loader, disabling it in firmware can help. It does not
+  repair filesystem or partition damage; inspect `docs/RECOVERY.md`.
 
 ## Direction `add-windows` (proven)
 
@@ -41,3 +41,12 @@ generated GRUB is unsigned, so Secure Boot must be off or the GRUB signed first.
 - `probe --json` for detection.
 - `plan` writes the config used by later phases (`--write`).
 - All phases accept `--dry-run` where meaningful and exit non-zero on failure.
+- Use `doctor --json` before storage operations, `verify --sha256` for publisher verification,
+  `status --json` across reboots, and `guide` for the installer choices tied to the plan.
+- Use the same `USBDB_CONFIG` in all phases. Non-root `plan --write` saves a local file;
+  root uses `/var/lib/usbless-dualboot/config.json` by default.
+- An interrupted shrink/stage blocks retry. Inspect the actual disk and backups before
+  clearing `phase_in_progress`. Never reset a completion marker to repeat a destructive phase.
+- `boot --cancel` removes BootNext only; no automatic cleanup or undo is implemented.
+- This CLI runs on Linux. Hop's Windows frontend, signed boot strategy and distro results
+  are not available just because we adopted some of its ideas.

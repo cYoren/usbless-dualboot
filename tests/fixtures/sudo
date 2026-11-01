@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Test-only replacement. Only executes the supplied fake engine via env.
+set -eu
+while [[ ${1:-} == -n || ${1:-} == -- ]]; do shift; done
+[[ ${1:-} == env ]] || exit 91
+exec "$@"

@@ -14,7 +14,7 @@ Design rules, enforced by the tests in this directory:
 Usage:
     cli-anything-usbless-dualboot manifest --json
     cli-anything-usbless-dualboot probe --json
-    cli-anything-usbless-dualboot plan --json
+    cli-anything-usbless-dualboot status --json
     cli-anything-usbless-dualboot run shrink --dry-run
 
 Exit codes: 0 on success, 1 on failure, 2 on usage error, 3 when the underlying
@@ -77,7 +77,7 @@ def print_manifest(as_json: bool) -> int:
             f"{danger_label(entry):<12} "
             f"{'YES' if entry.get('destructive') else 'no'}"
         )
-    print("\nDelegating commands: probe, plan, shrink, stage, boot, windows, secureboot")
+    print("\nDelegating commands: probe, doctor, verify, status, guide, plan, shrink, stage, boot, windows, secureboot")
     print("Inspect-only commands: manifest, version")
     return EXIT_OK
 
@@ -94,7 +94,7 @@ def run_pass_through(name: str, extra: List[str], force: bool, dry_run: bool) ->
 
     if entry.get("destructive") and not force:
         print(
-            f"refusing to run destructive command '{name}' without --i-understand or --yes.\n"
+            f"refusing to run destructive command '{name}' without --i-understand.\n"
             f"  '{name}' is DESTRUCTIVE ({danger_label(entry)}) and cannot be undone by the tool.\n"
             f"  suggested first step: usbless-dualboot {name} --dry-run",
             file=sys.stderr,
@@ -145,6 +145,10 @@ def usage_text() -> str:
         "  manifest --validate    validate the manifest and registry entry\n"
         "  version                print the underlying CLI version\n"
         "  probe [--json]         detect the current layout (read-only)\n"
+        "  doctor [--json]        readiness checks (read-only)\n"
+        "  verify [options]       ISO checksum verification (read-only)\n"
+        "  status [--json]        saved progress (read-only)\n"
+        "  guide                  installer instructions (read-only)\n"
         "  plan [options]         print a reviewable plan (read-only)\n"
         "  shrink [options]       DESTRUCTIVE: shrink the Linux partition\n"
         "  stage [options]        DESTRUCTIVE: create the installer partition\n"
@@ -153,7 +157,7 @@ def usage_text() -> str:
         "  secureboot [options]   firmware: sign the boot chain\n\n"
         "All arguments after the command are passed straight through to the real\n"
         "usbless-dualboot CLI. Destructive commands additionally require\n"
-        "--i-understand (or --yes) before they will be delegated.\n\n"
+        "--i-understand before they will be delegated.\n\n"
         "Exit codes: 0 ok, 1 failure, 2 usage error, 3 CLI not found.\n"
     )
 

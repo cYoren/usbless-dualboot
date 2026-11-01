@@ -23,7 +23,8 @@ operations.
 - The user wants the Linux bootloader (Limine/GRUB/systemd-boot) to stay the default.
 - The user needs Secure Boot enabled for a game (e.g. Valorant/Vanguard) while keeping Linux booting.
 
-Do **not** use for: BIOS/MBR machines, non-x86 UEFI quirks, or installing Linux.
+Do **not** use for BIOS/MBR machines, ARM machines, whole-disk replacement or Windows-native
+execution. Linux ISO staging exists as a Linux-hosted beta; read `docs/DIRECTIONS.md` first.
 
 ## Guardrails (read before acting)
 
@@ -37,8 +38,12 @@ Do **not** use for: BIOS/MBR machines, non-x86 UEFI quirks, or installing Linux.
 5. **Order of shrink.** Filesystem → LUKS mapping → partition. Never the reverse.
 6. **BitLocker.** Before changing Secure Boot keys/state on a Windows dual boot, tell the user
    to have the BitLocker/Device Encryption recovery key ready, or confirm Windows is unencrypted.
-7. **Recovery.** If the machine will not boot, disabling Secure Boot in firmware always recovers
-   (the Linux loader boots unsigned). Document this before enabling Secure Boot.
+7. **Recovery.** Disabling Secure Boot can help an unsigned-loader failure but does not repair
+   damaged storage. Read `docs/RECOVERY.md`; inspect interrupted phases before any retry.
+8. **One config.** Root and normal-user invocations must use the same `USBDB_CONFIG`. Prefer
+   saving the plan with sudo to the default private state directory.
+9. **Progress.** `doctor --json` reports blockers; `verify --sha256` checks a publisher hash;
+   `status --json` reports saved progress, backups and next step; `guide` supplies installer choices.
 
 ## Workflow
 
@@ -46,7 +51,7 @@ Direction `add-windows` (Linux machine gains Windows):
 
 ```bash
 sudo usbless-dualboot probe --json                     # read-only; identify disk, FS, encryption, bootloader
-usbless-dualboot plan --add windows --iso <path> \
+sudo usbless-dualboot plan --add windows --iso <path> \
   --linux-new-size <size> --write                      # show + save the exact plan; no changes
 sudo usbless-dualboot shrink                           # free space (may require a reboot before stage)
 # reboot if instructed (kernel must adopt the new partition geometry)
@@ -65,8 +70,8 @@ sudo usbless-dualboot secureboot --verify
 Direction `add-linux` (a machine gains Linux), beta:
 
 ```bash
-usbless-dualboot plan --add linux --iso <linux.iso> --write
-sudo usbless-dualboot stage --os linux --dry-run   # shows the detected kernel/initrd + entry
+sudo usbless-dualboot plan --add linux --iso <linux.iso> --write
+sudo usbless-dualboot stage --os linux --dry-run   # verifies geometry and ISO; no mounts or writes
 sudo usbless-dualboot stage --os linux             # carrier + ISO + standalone GRUB EFI + UEFI entry
 sudo usbless-dualboot boot --installer
 ```
@@ -80,7 +85,7 @@ sign it.
 - Linux keeps its data and becomes the default boot entry again.
 - A Windows entry exists in the boot menu.
 - The temporary installer partition can be deleted once Windows works.
-- With `secureboot --setup`, firmware Secure Boot is on with the user's keys plus Microsoft's,
+- With the separate `secureboot --prep` / `--enroll` / `--verify` workflow, firmware Secure Boot is on with the user's keys plus Microsoft's,
   so Windows and the signed Linux loader both boot.
 
 ## References

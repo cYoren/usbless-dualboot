@@ -24,7 +24,9 @@ a stick is simpler and safer.
 | Command | Root | Danger | Reversible | Notes |
 |---|---|---|---|---|
 | `probe` | no | none | n/a | read-only detection; supports `--json` |
-| `plan` | no | none | n/a | prints a plan; supports `--json`, `--write` |
+| `doctor` / `verify` / `status` | no | none | n/a | read-only; supports `--json` |
+| `guide` | no | none | n/a | installer choices for the saved plan |
+| `plan` | no | config | n/a | read-only by default; `--write` saves config; no `--json` |
 | `shrink` | yes | **destructive** | no | rewrites the partition table and resizes the root filesystem |
 | `stage` | yes | **destructive** | no | creates and formats a partition, copies the ISO |
 | `boot` | yes | firmware | yes | writes UEFI NVRAM boot entries via `efibootmgr` |
@@ -43,18 +45,19 @@ Always start read-only and show the user the result before the first mutation.
 sudo usbless-dualboot probe --json
 
 # 2. Read-only: what exactly would be done?
-usbless-dualboot plan --iso ~/Downloads/Win11.iso --windows-size 320GiB --json
+usbless-dualboot plan --iso ~/Downloads/Win11.iso --linux-new-size 600G
 
 # 3. Record the plan so later phases can re-verify it
-usbless-dualboot plan --iso ~/Downloads/Win11.iso --windows-size 320GiB --write
+sudo usbless-dualboot plan --iso "$HOME/Downloads/Win11.iso" --linux-new-size 600G --write
 
 # 4. DESTRUCTIVE. Rehearse first, then confirm with the user.
 sudo usbless-dualboot shrink --dry-run
-sudo usbless-dualboot shrink --yes
+sudo usbless-dualboot shrink
+# Reboot Linux before staging to adopt the new partition geometry.
 
 # 5. DESTRUCTIVE. Create the installer partition and copy the ISO.
 sudo usbless-dualboot stage --dry-run
-sudo usbless-dualboot stage --yes
+sudo usbless-dualboot stage
 
 # 6. Reboot into the installer
 sudo usbless-dualboot boot --installer
@@ -75,14 +78,16 @@ matches the recorded plan). Do not branch on richer codes — they do not exist.
   PARTUUID against the recorded plan. A mismatch aborts with exit 1 *before*
   any write. This is deliberate: it prevents shrinking the wrong disk.
 - `shrink` refuses a root filesystem it cannot shrink online.
-- `plan` is the only place a size decision is made. If the plan is wrong, the
-  failure surfaces at plan time, not during a write.
+- Planning rejects overlaps and unsupported geometry. Shrink also checks live filesystem
+  health, minimum size and encryption overhead before changing storage.
+- The sample size is not a recommendation. Confirm a size suitable for the actual disk.
+- Use the same `USBDB_CONFIG` across all runs; root and normal-user defaults differ.
 
 ## Interpreting a mistake safely
 
-If a phase aborts, **stop**. Do not re-run with `--yes` to push past a guard —
-the guard firing means the disk changed since the plan was made. Re-run `probe`
-and `plan` to see what changed, then show the user the difference.
+If a phase aborts, **stop**. Inspect `status --json`, `doctor --json` and recovery
+metadata before any retry. An interrupted phase must be reconciled with the actual
+disk before clearing its marker. Do not overwrite its plan. `--yes` is not supported.
 
 ## Boundaries
 

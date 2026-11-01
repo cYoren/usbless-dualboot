@@ -29,14 +29,14 @@ Contributed here:
 
 Every field in `manifest.json` was read out of this repository, not invented:
 
-- The command set (`probe`, `plan`, `shrink`, `stage`, `boot`, `windows`,
+- The command set (`probe`, `doctor`, `verify`, `status`, `guide`, `plan`, `shrink`, `stage`, `boot`, `windows`,
   `secureboot`, plus `version`/`help`) comes from the dispatch table in
   `bin/usbless-dualboot`.
 - **Exit codes are exactly `0` and `1`.** The union of explicit `exit N`
   statements across `bin/` and `lib/` is `{0, 1}`; every failure funnels through
   the `die()` helper. The manifest says so and deliberately does not claim richer
   codes.
-- **`--json` is real only for `probe` and `plan`.** The manifest's `supports_json`
+- **`--json` is supported by `probe`, `doctor`, `verify` and `status`; plan uses `--write`.** The manifest's `supports_json`
   flags are gated on this, and the validator rejects any entry claiming otherwise.
 - `requires_root` mirrors which phase scripts call `need_root`:
   `shrink`, `stage`, `boot`, `windows`, `secureboot` do; `probe` and `plan` do not.

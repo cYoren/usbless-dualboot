@@ -23,11 +23,13 @@ ISO=$(cfg_get .iso)
 ESP_MOUNT=$(cfg_get .esp_mount)
 INSTALLER_START=$(cfg_get .installer_start)
 INSTALLER_END=$(cfg_get .installer_end)
-EXPECTED_DISK_SECTORS=$(cfg_get .disk_sectors)
 ESP_PART=$(cfg_get .esp_part)
 
 [[ -f $ISO ]] || die "ISO not found: $ISO"
-[[ $(cat "/sys/class/block/$(basename "$DISK")/size") == "$EXPECTED_DISK_SECTORS" ]] || die "disk size changed since the plan"
+phase_ready stage
+verify_planned_iso
+table=$(validated_table)
+assert_installer_space "$table"
 ac_power_ok || die "connect AC power before continuing"
 
 iso_bytes=$(stat -c %s "$ISO")
@@ -35,6 +37,8 @@ fat32_limit=$(( 4 * 1024 * 1024 * 1024 - 64 * 1024 * 1024 ))
 if (( iso_bytes <= fat32_limit )); then carrier_fs=fat32; else carrier_fs=exfat; fi
 carrier_label=LINUXINST
 iso_name=$(basename "$ISO")
+[[ $iso_name =~ ^[A-Za-z0-9._+-]+$ ]] || die "rename the ISO to use only letters, digits, dots, underscores, plus or minus"
+((iso_bytes + 512 * 1024 * 1024 < (INSTALLER_END - INSTALLER_START + 1) * 512)) || die "ISO does not fit the carrier"
 
 # Optional explicit overrides for unsupported distros (set via 'plan' or config).
 KERNEL_OVERRIDE=$(cfg_get '.linux_kernel // empty')
@@ -45,17 +49,22 @@ log "add-linux (beta)"
 log "  ISO:      $ISO ($(( iso_bytes / 1024 / 1024 )) MiB)"
 log "  Carrier:  ${INSTALLER_START}..${INSTALLER_END} as $carrier_fs (label $carrier_label)"
 log "  GRUB:     standalone EFI on $ESP_MOUNT, loopback-booting the ISO"
+if ((DRY)); then
+  log 'dry-run: geometry and ISO fingerprint verified; no changes made'
+  log 'Kernel/initrd inspection, Secure Boot checks and distro parameter validation run before actual partition writes.'
+  exit 0
+fi
 
 ISO_MNT=$(mktemp -d)
-cleanup() { mountpoint -q "$ISO_MNT" && umount "$ISO_MNT" || true; }
+cleanup() { mountpoint -q "$ISO_MNT" && umount "$ISO_MNT" || true; rmdir "$ISO_MNT" 2>/dev/null || true; }
 trap cleanup EXIT
 need_root
 mount -o loop,ro "$ISO" "$ISO_MNT"
 
-find_first() { local p; for p in "$@"; do [[ -f "$ISO_MNT/$p" ]] && { printf '/%s' "$p"; return; }; done; }
+find_first() { local p; for p in "$@"; do [[ -f "$ISO_MNT/$p" ]] && { printf '/%s' "$p"; return; }; done; return 0; }
 rel() { printf '/%s' "${1#"$ISO_MNT"/}"; }
 
-KERNEL="$KERNEL_OVERRIDE"; INITRD="$INITRD_OVERRIDE"; FAMILY=generic
+KERNEL=""; INITRD=""; FAMILY=generic
 if [[ -d $ISO_MNT/casper ]]; then
   FAMILY=casper;  KERNEL=$(find_first casper/vmlinuz casper/vmlinuz.efi); INITRD=$(find_first casper/initrd casper/initrd.lz casper/initrd.img)
 elif [[ -d $ISO_MNT/live ]]; then
@@ -77,17 +86,23 @@ fi
 
 # Recursive fallback for unusual ISOs.
 if [[ -z $KERNEL ]]; then
-  k=$(find "$ISO_MNT" -maxdepth 5 -type f -name 'vmlinuz*' 2>/dev/null | head -1); [[ -n $k ]] && KERNEL=$(rel "$k")
+  k=$(find "$ISO_MNT" -maxdepth 5 -type f -name 'vmlinuz*' -print -quit); [[ -z $k ]] || KERNEL=$(rel "$k")
 fi
 if [[ -z $INITRD ]]; then
-  i=$(find "$ISO_MNT" -maxdepth 5 -type f \( -name 'initrd*' -o -name 'initramfs*' \) 2>/dev/null | head -1); [[ -n $i ]] && INITRD=$(rel "$i")
+  i=$(find "$ISO_MNT" -maxdepth 5 -type f \( -name 'initrd*' -o -name 'initramfs*' \) -print -quit); [[ -z $i ]] || INITRD=$(rel "$i")
 fi
+KERNEL=${KERNEL_OVERRIDE:-$KERNEL}; INITRD=${INITRD_OVERRIDE:-$INITRD}
+[[ -f $ISO_MNT$KERNEL && -f $ISO_MNT$INITRD ]] || die "selected kernel or initrd does not exist in the ISO"
 cleanup; trap - EXIT
 
 [[ -n $KERNEL && -n $INITRD ]] || die "could not locate a kernel/initrd; set .linux_kernel/.linux_initrd/.linux_params in the config"
+[[ $KERNEL =~ ^/[A-Za-z0-9/._+-]+$ && $INITRD =~ ^/[A-Za-z0-9/._+-]+$ ]] || die "unsupported characters in kernel/initrd paths"
 log "  Detected: family=$FAMILY kernel=$KERNEL initrd=$INITRD"
 
 PARAMS="$PARAMS_OVERRIDE"
+if [[ -z $PARAMS && $FAMILY != casper && $FAMILY != live && $FAMILY != arch ]]; then
+  die "family '$FAMILY' needs reviewed .linux_params in the config; automatic loopback parameters are not validated"
+fi
 if [[ -z $PARAMS ]]; then
   case "$FAMILY" in
     casper)  PARAMS="boot=casper iso-scan/filename=/$iso_name ---" ;;
@@ -114,16 +129,23 @@ menuentry "Install Linux (internal ISO)" {
 EOF
 log "  GRUB entry:"; sed 's/^/    /' "$GRUB_CFG"
 
-if ((DRY)); then
-  log "dry-run: no changes made"; rm -f "$GRUB_CFG"; exit 0
-fi
-
-inst_partnum=$(( $(sfdisk --json "$DISK" | jq -r '.partitiontable.partitions | length') + 1 ))
-CARRIER="${DISK}p${inst_partnum}"
+need_cmd efibootmgr; need_cmd blkid
+assert_esp_mounted
+sb_state=$(bash "$HERE/probe.sh" --json | jq -r .secure_boot)
+[[ $sb_state == disabled ]] || die "Linux beta requires Secure Boot disabled; current state: $sb_state"
+pkg_install grub 2>/dev/null || pkg_install grub-efi-amd64-bin
+need_cmd grub-mkstandalone
+if [[ $carrier_fs == exfat ]]; then pkg_install exfatprogs; need_cmd mkfs.exfat
+else need_cmd mkfs.fat; fi
+inst_partnum=$(next_partition_number "$DISK")
+CARRIER=$(partition_path "$DISK" "$inst_partnum")
+phase_begin stage
+backup_partition_table "$DISK" stage
+save_boot_order
 
 log "Creating $carrier_fs carrier partition $CARRIER..."
-printf 'start=%s, size=%s, type=%s, name="Linux Installer"\n' \
-  "$INSTALLER_START" "$(( INSTALLER_END - INSTALLER_START + 1 ))" \
+printf '%s : start=%s, size=%s, type=%s, name="Linux Installer"\n' \
+  "$CARRIER" "$INSTALLER_START" "$(( INSTALLER_END - INSTALLER_START + 1 ))" \
   EBD0A0A2-B9E5-4433-87C0-68B6B72699C7 \
   | sfdisk --append --no-reread --no-tell-kernel --wipe never "$DISK"
 udevadm settle
@@ -132,20 +154,21 @@ udevadm settle
 if [[ $carrier_fs == fat32 ]]; then
   mkfs.fat -F 32 -n "$carrier_label" "$CARRIER"
 else
-  pkg_install exfatprogs
   mkfs.exfat -L "$carrier_label" "$CARRIER"
 fi
 
 CARRIER_MNT=$(mktemp -d)
 mount "$CARRIER" "$CARRIER_MNT"
+cleanup_carrier() { mountpoint -q "$CARRIER_MNT" && umount "$CARRIER_MNT" || true; }
+trap cleanup_carrier EXIT
 log "Copying the ISO onto the carrier..."
 cp "$ISO" "$CARRIER_MNT/$iso_name"
+cmp -- "$ISO" "$CARRIER_MNT/$iso_name" || die "ISO copy verification failed"
 sync
 umount "$CARRIER_MNT"; rmdir "$CARRIER_MNT"
+trap - EXIT
 
 log "Building a standalone GRUB EFI..."
-pkg_install grub 2>/dev/null || pkg_install grub-efi-amd64-bin
-need_cmd grub-mkstandalone
 GRUB_EFI=$(mktemp --suffix=.efi)
 grub-mkstandalone -O x86_64-efi -o "$GRUB_EFI" \
   --modules="part_gpt part_msdos fat exfat ntfs loopback linux normal search search_label search_fs_uuid configfile iso9660" \
@@ -154,12 +177,15 @@ install -D -m 0644 "$GRUB_EFI" "$ESP_MOUNT/EFI/usbless/grubx64.efi"
 rm -f "$GRUB_EFI" "$GRUB_CFG"
 
 esp_partnum=$(cat "/sys/class/block/$(basename "$ESP_PART")/partition")
-if ! efibootmgr | grep -q 'Linux Installer'; then
-  efibootmgr --create --disk "$DISK" --part "$esp_partnum" \
-    --label 'Linux Installer' --loader '\EFI\usbless\grubx64.efi'
-fi
+esp_disk=$(lsblk -dno PKNAME "$ESP_PART")
+[[ -n $esp_disk ]] || die "could not determine the ESP's parent disk"
+efibootmgr --create-only --disk "/dev/$esp_disk" --part "$esp_partnum" \
+  --label 'Linux Installer' --loader '\EFI\usbless\grubx64.efi'
 
-cfg_set stage_complete "1"
+cfg_set installer_part "$CARRIER"
+cfg_set installer_partnum "$inst_partnum"
+cfg_set installer_partuuid "$(blkid -s PARTUUID -o value "$ESP_PART")"
+phase_done stage
 log
 log "Linux installer staged. Reboot and pick 'Linux Installer'."
 log "Secure Boot note: this GRUB is unsigned; disable Secure Boot for the install or sign it."

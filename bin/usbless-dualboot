@@ -2,7 +2,7 @@
 # usbless-dualboot - install Windows alongside Linux without a USB stick.
 set -Eeuo pipefail
 
-VERSION="0.1.0"
+VERSION="0.2.0"
 SELF="$(readlink -f "${BASH_SOURCE[0]}")"
 ROOT="$(cd "$(dirname "$SELF")/.." && pwd)"
 LIB="$ROOT/lib"
@@ -18,6 +18,10 @@ Usage:
 
 Commands:
   probe        Detect disks, filesystems, encryption, bootloader, firmware.
+  doctor       Read-only readiness checks, with actionable blockers (--json).
+  verify       Fingerprint an ISO or verify its publisher's SHA-256 (--json).
+  status       Show saved progress and the next step (--json).
+  guide        Show installer choices and recovery instructions for the plan.
   plan         Print a concrete, reviewable plan (no changes).
   shrink       Shrink Linux storage to free space (guarded).
   stage        Create the FAT32 installer partition, copy ISO, split install.wim.
@@ -27,15 +31,14 @@ Commands:
   version      Print version.
   help         Show this help.
 
-Global options:
-  --json        Machine-readable output (where supported).
-  --dry-run     Print actions without executing them.
-  --yes         Assume yes (non-interactive).
+Options are command-specific; use <command> --help.
+State paths: USBDB_STATE_DIR and USBDB_CONFIG environment variables.
 
 Examples:
   sudo usbless-dualboot probe --json
-  usbless-dualboot plan --iso ~/Downloads/Win11.iso --windows-size 320GiB
-  sudo usbless-dualboot stage --iso ~/Downloads/Win11.iso
+  usbless-dualboot doctor --json
+  usbless-dualboot plan --iso ~/Downloads/Win11.iso --linux-new-size 1526G
+  sudo usbless-dualboot stage --dry-run
 
 Docs: README.md  |  Agent entry: llms.txt  |  Skill: SKILL.md
 EOF
@@ -52,6 +55,10 @@ main() {
   shift || true
   case "$cmd" in
     probe)      need_lib probe.sh "$@" ;;
+    doctor)     need_lib doctor.sh "$@" ;;
+    verify)     need_lib verify.sh "$@" ;;
+    status)     need_lib status.sh "$@" ;;
+    guide)      need_lib guide.sh "$@" ;;
     plan)       need_lib plan.sh "$@" ;;
     shrink)     need_lib shrink.sh "$@" ;;
     stage)      need_lib stage.sh "$@" ;;

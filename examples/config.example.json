@@ -1,7 +1,11 @@
 {
   "direction": "add-windows",
   "disk": "/dev/nvme0n1",
+  "disk_id": "REPLACE-WITH-GPT-DISK-GUID-FROM-PLAN",
   "linux_part": "/dev/nvme0n1p2",
+  "linux_part_uuid": "REPLACE-WITH-PARTITION-GUID-FROM-PLAN",
+  "linux_part_start": "2099200",
+  "linux_part_sectors": "3904925935",
   "linux_mapper": "root",
   "linux_fstype": "btrfs",
   "esp_part": "/dev/nvme0n1p1",
@@ -14,5 +18,7 @@
   "windows_start": "3206578176",
   "windows_end": "3881861119",
   "disk_sectors": "3907029168",
-  "iso": "/home/user/Downloads/Win11.iso"
+  "iso": "/home/user/Downloads/Win11.iso",
+  "iso_sha256": "REPLACE-WITH-SHA256-FROM-PLAN",
+  "publisher_sha256": ""
 }
