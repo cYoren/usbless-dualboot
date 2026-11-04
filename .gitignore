@@ -12,6 +12,8 @@ Thumbs.db
 /build-tests/
 /platforms/windows/bin/
 /platforms/windows/obj/
+__pycache__/
+*.py[cod]
 /.lab/
 /pkgbuild/pkg/
 /pkgbuild/src/

@@ -35,7 +35,7 @@ done
 [[ -f $ISO ]] || die "ISO not found: $ISO"
 [[ $DIRECTION == add-windows || $DIRECTION == add-linux ]] || die "direction must be add-windows or add-linux"
 [[ -z $EXPECTED_SHA256 || $EXPECTED_SHA256 =~ ^[[:xdigit:]]{64}$ ]] || die "invalid SHA-256"
-need_cmd jq; need_cmd sfdisk; need_cmd blockdev; need_cmd sha256sum
+need_cmd jq; need_cmd sfdisk; need_cmd blockdev; need_cmd sha256sum; need_cmd blkid
 [[ -d /sys/firmware/efi && $(uname -m) == x86_64 ]] || die "requires Linux booted in x86-64 UEFI mode"
 ISO=$(readlink -f -- "$ISO")
 ISO_SHA256=$(iso_hash "$ISO")
@@ -45,6 +45,8 @@ ISO_SHA256=$(iso_hash "$ISO")
 usbdb_detect
 [[ -n $USBDB_DISK && -b $USBDB_DISK ]] || die "could not detect the target disk"
 [[ -n $USBDB_LINUX_PART && -b $USBDB_LINUX_PART ]] || die "could not detect the Linux partition"
+linux_fs_uuid=$(blkid -s UUID -o value "$USBDB_ROOT_SRC")
+[[ -n $linux_fs_uuid ]] || die "could not identify the Linux filesystem UUID"
 
 disk_sectors=$(cat "/sys/class/block/$(basename "$USBDB_DISK")/size")
 [[ $(blockdev --getss "$USBDB_DISK") == 512 ]] || die "only 512-byte logical sectors are supported"
@@ -118,6 +120,7 @@ if ((WRITE)); then
   jq -n --arg direction "$DIRECTION" --arg disk "$USBDB_DISK" --arg disk_id "$disk_id" \
     --arg linux_part "$USBDB_LINUX_PART" --arg linux_part_uuid "$part_uuid" --arg linux_part_start "$part_start" --arg linux_part_sectors "$part_sectors" \
     --arg linux_mapper "$USBDB_LINUX_MAPPER" --arg linux_fstype "$USBDB_LINUX_FSTYPE" \
+    --arg linux_fs_uuid "$linux_fs_uuid" \
     --arg esp_part "$USBDB_ESP_PART" --arg esp_mount "$USBDB_ESP_MOUNT" --arg bootloader "$USBDB_BOOTLOADER" \
     --arg linux_new_size "$LINUX_NEW_SIZE" --arg installer_size "$INSTALLER_SIZE" \
     --arg installer_start "$inst_start" --arg installer_end "$inst_end" \

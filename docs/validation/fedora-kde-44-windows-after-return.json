@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "machine": "DisposableVM",
+  "manufacturer": "USBlessLab",
+  "windows": "Microsoft Windows 11 Pro",
+  "agent": 2,
+  "payload_sha256": "F112BFA7CD37C98ADFD3428A58C362B092BAD4139AA1788C884DA1839E0194F3",
+  "sentinel": "185710B65F8518ED5706BFF3DB0B203C09C35916F3B83C403A639E012DFDC088",
+  "disks": [
+    {
+      "Number": 0,
+      "Guid": "{0383d3f0-1e84-4e59-8c14-b2a1b504ec4f}",
+      "SerialNumber": "USBDBLABSYSTEM",
+      "Size": 137438953472,
+      "PartitionStyle": "GPT"
+    },
+    {
+      "Number": 1,
+      "Guid": null,
+      "SerialNumber": "1-0000:00:02.0-1",
+      "Size": 134217728,
+      "PartitionStyle": "MBR"
+    }
+  ]
+}

@@ -42,6 +42,15 @@ Backend::Backend(QString engine, QString stateDirectory, bool demo, QObject *par
 }
 
 void Backend::setIsoPath(const QString &value) { if (m_iso != value) { m_iso = value; emit changed(); } }
+void Backend::previewCleanup(bool removed) {
+    if (!m_demo) return;
+    m_saved = {{"state",removed ? "installer_removed" : "boot_restored"},{"installer_owned",true},{"disk","/dev/demo"},
+               {"carrier_partuuid","sample-installer-uuid"},{"carrier_sectors","20971520"}};
+    m_cleanupPreview = {{"disk","/dev/demo"},{"carrier","/dev/demo4"},
+                        {"partuuid","sample-installer-uuid"},{"bytes",10737418240LL}};
+    if (removed) m_cleanupPreview.clear();
+    emit changed();
+}
 void Backend::setChecksum(const QString &value) { if (m_checksum != value) { m_checksum = value.trimmed(); emit changed(); } }
 void Backend::setLinuxSize(const QString &value) { if (m_size != value) { m_size = value.trimmed(); emit changed(); } }
 void Backend::setDirection(const QString &value) {
@@ -58,6 +67,9 @@ void Backend::readView() {
     m_viewBytes = bytes;
     const auto view = doc.object();
     m_saved = view.value("status").toObject().toVariantMap();
+    m_cleanupPreview.clear();
+    if (view.value("action") == "cleanup-preview" && view.value("exit_code").toInt() == 0)
+        m_cleanupPreview = view.value("cleanup_preview").toObject().toVariantMap();
     if (m_saved.value("direction") == "add-linux") m_direction = "linux";
     else if (m_saved.value("direction") == "add-windows") m_direction = "windows";
     if (m_saved.contains("iso")) m_iso = m_saved.value("iso").toString();
@@ -176,7 +188,7 @@ QStringList Backend::terminalArguments(const QString &terminal, const QString &r
     if (terminal == "kitty") args << "--hold";
     else if (terminal == "ghostty") args << "--wait-after-command" << "-e";
     else if (terminal == "foot") args << "--hold";
-    else if (terminal == "alacritty") args << "--hold" << "-e";
+    else if (terminal == "alacritty" || terminal == "konsole") args << "--hold" << "-e";
     else args << "-hold" << "-e";
     return args + QStringList{"bash",runner,engine,state,action} + parameters;
 }
@@ -184,7 +196,7 @@ QStringList Backend::terminalArguments(const QString &terminal, const QString &r
 void Backend::launch(const QString &action) {
     if (m_busy) return;
     if (m_demo) { m_error = tr("Preview mode cannot change disks or firmware."); emit changed(); return; }
-    const QStringList allowed{"plan","shrink","stage","boot-installer","restore","cancel","windows","doctor"};
+    const QStringList allowed{"plan","shrink","stage","boot-installer","restore","cancel","windows","doctor","cleanup-preview","cleanup"};
     if (!allowed.contains(action)) { m_error = tr("Unknown action."); emit changed(); return; }
     const auto state = m_saved.value("state","not_planned").toString();
     const bool matches = action == "doctor" ||
@@ -194,8 +206,15 @@ void Backend::launch(const QString &action) {
         (action == "boot-installer" && (state == "staged" || state == "boot_scheduled")) ||
         (action == "cancel" && state == "interrupted") ||
         ((action == "restore" || action == "cancel") && (state == "staged" || state == "boot_scheduled" || state == "boot_restored")) ||
-        (action == "windows" && state == "boot_restored");
+        (action == "windows" && state == "boot_restored") ||
+        ((action == "cleanup-preview" || action == "cleanup") && state == "boot_restored" && m_saved.value("installer_owned").toBool());
     if (!matches) { m_error = tr("This action does not match saved progress. Refresh or recheck readiness first."); emit changed(); return; }
+    if (action == "cleanup" && (m_cleanupPreview.isEmpty() ||
+        m_cleanupPreview.value("disk") != m_saved.value("disk") ||
+        m_cleanupPreview.value("partuuid").toString().compare(m_saved.value("carrier_partuuid").toString(),Qt::CaseInsensitive) != 0 ||
+        m_cleanupPreview.value("bytes").toULongLong() != m_saved.value("carrier_sectors").toULongLong() * 512)) {
+        m_error = tr("Review the installer removal plan again before continuing."); emit changed(); return;
+    }
     QStringList parameters;
     if (action == "plan") {
         if (!QFileInfo(m_iso).isFile() || !QRegularExpression("^[0-9]{1,7}[KMGTP](iB|B)?$").match(m_size).hasMatch()) {
@@ -209,10 +228,10 @@ void Backend::launch(const QString &action) {
     const auto runner = QFileInfo(m_engine).absolutePath() + "/ui-action";
     if (!QFileInfo::exists(runner)) { m_error = tr("The terminal helper is missing. Install the complete project."); emit changed(); return; }
     QString terminal;
-    for (const auto &name : {"kitty","ghostty","foot","alacritty","xterm"}) {
+    for (const auto &name : {"kitty","ghostty","foot","alacritty","konsole","xterm"}) {
         if (!QStandardPaths::findExecutable(name).isEmpty()) { terminal = name; break; }
     }
-    if (terminal.isEmpty()) { m_error = tr("Install a supported terminal: kitty, ghostty, foot, alacritty or xterm."); emit changed(); return; }
+    if (terminal.isEmpty()) { m_error = tr("Install a supported terminal: Konsole, kitty, ghostty, foot, alacritty or xterm."); emit changed(); return; }
     m_error.clear(); m_notice = tr("Continue in the terminal. Your password stays there."); m_busy = true; emit changed();
     if (!QProcess::startDetached(QStandardPaths::findExecutable(terminal),
         terminalArguments(terminal, runner, m_engine, m_state, action, parameters))) {

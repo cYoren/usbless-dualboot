@@ -30,11 +30,9 @@ Describe 'Catalog' {
             $distro.Kind | Should -BeIn @('ubuntu', 'mint', 'pop', 'elementary', 'zorin', 'debian', 'fedora', 'ultramarine', 'cachyos', 'arch', 'omarchy')
         }
     }
-    It 'has a logo file for every system' {
-        foreach ($distro in $catalog) {
-            Join-Path $root "assets\logos\$($distro.Logo).png" | Should -Exist
-        }
-    }
+    # Letter-mark rendering is checked in the real native UI. The old bundled
+    # artwork/file check no longer applies, and private theme reflection is not
+    # an engine contract.
     It 'tells people what to click, whichever installer it is' {
         foreach ($distro in $catalog) {
             if ($distro.Strategy -eq 'prepared') { $distro.Mode | Should -Not -BeNullOrEmpty }
@@ -142,6 +140,20 @@ Describe 'Resolve-Download' {
         $download.FileName | Should -Be 'ultramarine-gnome-44-live-anaconda-x86_64.iso'
         $download.Sha256 | Should -Be $hash
     }
+    It 'resolves KDE independently of Workstation and rejects beta and ARM images' {
+        Mock Invoke-RestMethod {
+            , @(
+                [pscustomobject]@{ version = '45 Beta'; arch = 'x86_64'; variant = 'KDE'; link = 'https://x/beta.iso'; sha256 = 'b'; size = '1' }
+                [pscustomobject]@{ version = '44'; arch = 'aarch64'; variant = 'KDE'; link = 'https://x/arm.iso'; sha256 = 'c'; size = '1' }
+                [pscustomobject]@{ version = '44'; arch = 'x86_64'; variant = 'Workstation'; link = 'https://x/gnome.iso'; sha256 = 'd'; size = '1' }
+                [pscustomobject]@{ version = '44'; arch = 'x86_64'; variant = 'KDE'; link = 'https://x/kde.iso'; sha256 = 'a' * 64; size = '3368683520' }
+            )
+        }
+        $download = Resolve-Download (Get-Catalog | Where-Object Id -eq 'fedora-kde')
+        $download.Url | Should -Be 'https://x/kde.iso'
+        $download.Sha256 | Should -Be ('a' * 64)
+        $download.Size | Should -Be 3368683520
+    }
     It 'picks the newest CachyOS build with a checksum, from the host that works on Windows 10' {
         Mock Get-WebText { '<a href="../">x</a><a href="260628/">a</a> <a href="260809/">b</a> <a href="261001/">c</a>' } -ParameterFilter { $Url -like '*/ISO/desktop/' }
         Mock Get-WebText { throw 'not yet' } -ParameterFilter { $Url -like '*/261001/*' }
@@ -181,6 +193,7 @@ Describe 'Download helpers' {
         BeforeEach {
             Set-Content -LiteralPath 'TestDrive:\a.iso.part' -Value 'partial'
             Mock Assert-DownloadRoom { }
+            Mock Test-CurlAvailable { $true }
             Mock Invoke-WebRequest { throw 'no' }
             Mock Invoke-Curl { 22 }
         }
@@ -192,11 +205,32 @@ Describe 'Download helpers' {
             Mock Test-ServerAnswers { $true }
             { Invoke-Download ([pscustomobject]@{ Url = 'https://x/a.iso'; Size = 100; FileName = 'a.iso' }) 'TestDrive:\a.iso' } | Should -Throw
             Should -Invoke Invoke-Curl -Times 2
+            $saved = @(Get-ChildItem 'TestDrive:\a.iso.part.saved-*')
+            $saved.Count | Should -Be 1
+            (Get-Content -LiteralPath $saved[0].FullName -Raw).Trim() | Should -Be 'partial'
         }
     }
     It 'compares versions numerically' {
         (ConvertTo-Version '26') | Should -BeLessThan (ConvertTo-Version '26.04')
         (ConvertTo-Version '9.1') | Should -BeLessThan (ConvertTo-Version '22')
+    }
+}
+
+Describe 'Preserving download evidence' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot 'Load-Engine.ps1')
+        Mock Write-Log { }
+    }
+    It 'keeps rejected bytes separately without overwriting earlier evidence' {
+        $path = Join-Path $TestDrive 'keep.iso'
+        Set-Content -LiteralPath $path -Value 'first'
+        Preserve-Download $path 'checksum mismatch'
+        Set-Content -LiteralPath $path -Value 'second'
+        Preserve-Download $path 'different release'
+        $files = @(Get-ChildItem "$path.saved-*")
+        $files.Count | Should -Be 2
+        @($files | ForEach-Object { (Get-Content $_.FullName -Raw).Trim() } | Sort-Object) | Should -Be @('first', 'second')
+        Test-Path -LiteralPath $path | Should -BeFalse
     }
 }
 
@@ -477,9 +511,9 @@ Describe 'Get-InstallStatus' {
         Mock Get-UsblessPartitions { $installer }
         Get-InstallStatus | Should -Be 'ready'
     }
-    It 'keeps a setup made by an older build ready' {
+    It 'keeps an owned setup with the older state schema ready' {
         Mock Read-State { [pscustomobject]@{ BootNumber = 5 } }
-        Mock Get-UsblessPartitions { [pscustomobject]@{ Partition = $null; Label = 'USBLLEGACY'; Letter = 'H' } }
+        Mock Get-UsblessPartitions { [pscustomobject]@{ Partition = $null; Label = 'USBLINSTALL'; Letter = 'H' } }
         Get-InstallStatus | Should -Be 'ready'
     }
     It 'gets the drive letter back instead of calling it a failed attempt' {
@@ -1689,7 +1723,7 @@ Describe 'Systems whose installer can''t use free space on its own disk' {
         $engine = New-Object Usbless.Engine
         try {
             (@($engine.GetCatalog() | Where-Object Refused | ForEach-Object { $_.Id } | Sort-Object) -join ',') | Should -Be (@($ubiquity | Where-Object { $_ -notin $UbiquityProven } | Sort-Object) -join ',')
-            @($engine.GetCatalog() | Where-Object WindowsDiskOnly | ForEach-Object { $_.Id } | Sort-Object) | Should -Be @(@('cachyos', 'debian') + $UbiquityProven | Sort-Object)
+            @($engine.GetCatalog() | Where-Object WindowsDiskOnly | ForEach-Object { $_.Id } | Sort-Object) | Should -Be @(@('cachyos', 'debian', 'fedora-kde') + $UbiquityProven | Sort-Object)
         } finally { $engine.Dispose() }
     }
 }

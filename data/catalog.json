@@ -1651,27 +1651,35 @@
     },
     {
       "id": "fedora-kde",
-      "name": "Fedora KDE",
+      "name": "Fedora KDE Plasma",
       "baseline": false,
       "download": {
         "provider": "fedora",
-        "source": "https://fedoraproject.org/kde/"
+        "source": "https://fedoraproject.org/kde/",
+        "edition": "KDE"
       },
       "restrictions": {
-        "secure_boot_off": null,
-        "bitlocker_fully_off": null
+        "secure_boot_off": false,
+        "bitlocker_fully_off": false
       },
       "platforms": {
         "windows": {
-          "implementation": "planned",
-          "validation": "unvalidated"
+          "implementation": "present",
+          "validation": "preservation-recovery-validated",
+          "recipe_source": "platforms/windows/engine/Catalog.ps1:fedora-kde"
         },
         "linux": {
           "implementation": "planned",
           "validation": "unvalidated"
         }
       },
-      "evidence": []
+      "evidence": [
+        "docs/validation/fedora-kde-44-media.json",
+        "docs/validation/fedora-kde-44-windows-prepared.json",
+        "docs/validation/fedora-kde-44-installer-boot.json",
+        "docs/validation/fedora-kde-44-installed-boot.json",
+        "docs/validation/fedora-kde-44-preservation.json"
+      ]
     },
     {
       "id": "opensuse",

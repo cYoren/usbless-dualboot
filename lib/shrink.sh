@@ -4,12 +4,15 @@ set -Eeuo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=common.sh
 source "$HERE/common.sh"
+source "$HERE/ext4.sh"
 
-DRY=0
+DRY=0; OFFLINE=0; ISO_OVERRIDE=""
 while (($#)); do
   case "$1" in
     --dry-run) DRY=1; shift ;;
-    -h|--help) echo "usage: usbless-dualboot shrink [--dry-run]"; exit 0 ;;
+    --offline) OFFLINE=1; shift ;;
+    --iso) ISO_OVERRIDE=${2:?missing ISO path}; shift 2 ;;
+    -h|--help) echo "usage: usbless-dualboot shrink [--offline [--iso PATH]] [--dry-run]"; exit 0 ;;
     *) die "unknown option: $1" ;;
   esac
 done
@@ -28,7 +31,8 @@ LAST_LBA=$(cfg_get .installer_end)
 [[ -n $NEW_SIZE ]] || die "config has no linux_new_size (set it with plan --linux-new-size)"
 [[ -b $DISK && -b $LINUX_PART ]] || die "disk or Linux partition missing"
 phase_ready shrink
-verify_planned_iso
+[[ -z $ISO_OVERRIDE || $OFFLINE == 1 ]] || die "--iso is only for locating the saved ISO in an offline environment"
+verify_planned_iso "$ISO_OVERRIDE"
 table=$(validated_table)
 
 disk_sectors=$(blockdev --getsz "$DISK")
@@ -52,6 +56,13 @@ if [[ -n $LINUX_MAPPER ]]; then
   need_cmd cryptsetup
   luks_offset=$(cryptsetup status "$LINUX_MAPPER" | awk '$1 == "offset:" {print $2}')
   [[ $luks_offset =~ ^[0-9]+$ ]] || die "cannot determine LUKS payload offset"
+  if ((OFFLINE)); then
+    mapping_status=$(cryptsetup status "$LINUX_MAPPER")
+    mapping_part=$(awk '$1 == "device:" {print $2}' <<< "$mapping_status")
+    mapping_type=$(awk '$1 == "type:" {print $2}' <<< "$mapping_status")
+    [[ $mapping_type == LUKS1 || $mapping_type == LUKS2 ]] || die "offline shrink requires a LUKS mapping"
+    [[ $(readlink -f "$mapping_part") == "$(readlink -f "$LINUX_PART")" ]] || die "LUKS mapping belongs to a different partition"
+  fi
 fi
 payload_bytes=$(payload_size_bytes "$new_sectors" "$luks_offset")
 payload_sectors=$((payload_bytes / 512))
@@ -60,6 +71,40 @@ log "Shrink plan:"
 log "  filesystem: $FSTYPE -> $payload_bytes bytes (partition size $NEW_SIZE)"
 log "  partition:  $LINUX_PART ($part_num) ends at $new_end"
 [[ $new_end -lt $LAST_LBA ]] || die "new Linux end ($new_end) overlaps the installer region"
+
+if [[ $FSTYPE == ext4 ]]; then
+  ((OFFLINE)) || die "ext4 shrink requires --offline from a live environment with the filesystem unmounted"
+  need_cmd e2fsck; need_cmd resize2fs; need_cmd dumpe2fs
+  filesystem_device=${LINUX_MAPPER:+/dev/mapper/$LINUX_MAPPER}
+  filesystem_device=${filesystem_device:-$LINUX_PART}
+  assert_offline_ext4 "$filesystem_device"
+  if ((DRY)); then log "dry-run: check ext4, resize filesystem, verify size, then shorten the mapping/partition; no changes made"; exit 0; fi
+  need_root
+  cfg_set linux_new_end "$new_end"
+  phase_begin shrink
+  backup_partition_table "$DISK" shrink
+  assert_offline_ext4 "$filesystem_device"
+  # Any reported/corrected error stops the phase with its marker and backup intact.
+  log "Checking unmounted ext4 filesystem health..."
+  e2fsck -f -p "$filesystem_device" | tee "$BACKUP_DIR/ext4-before.txt"
+  assert_offline_ext4 "$filesystem_device"
+  log "Shrinking ext4 to at most $payload_bytes bytes..."
+  resize2fs "$filesystem_device" "${payload_sectors}s"
+  e2fsck -f -p "$filesystem_device" | tee "$BACKUP_DIR/ext4-after.txt"
+  assert_offline_ext4 "$filesystem_device"
+  assert_ext4_fits "$filesystem_device" "$payload_bytes"
+  sync
+  if [[ -n $LINUX_MAPPER ]]; then
+    cryptsetup resize "$LINUX_MAPPER" --size "$payload_sectors"
+  fi
+  printf 'size=%s\n' "$new_sectors" | sfdisk --no-reread --no-tell-kernel -N "$part_num" "$DISK"
+  sfdisk --verify "$DISK"
+  sync
+  phase_done shrink
+  log "Offline ext4 shrink complete. Reboot before staging so the kernel adopts the new geometry."
+  exit 0
+fi
+((OFFLINE == 0)) || die "--offline currently supports ext4 only"
 
 if ((DRY)); then log "dry-run: no changes made"; exit 0; fi
 need_root

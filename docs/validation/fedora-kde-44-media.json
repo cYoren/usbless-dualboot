@@ -1,0 +1,34 @@
+{
+  "case": "fedora-kde-44-media",
+  "date": "2026-11-01",
+  "platform_recipe": "windows",
+  "distro": "fedora-kde",
+  "release": "44-1.7",
+  "architecture": "x86_64",
+  "publisher_metadata": "https://fedoraproject.org/releases.json",
+  "iso_url": "https://download.fedoraproject.org/pub/fedora/linux/releases/44/KDE/x86_64/iso/Fedora-KDE-Desktop-Live-44-1.7.x86_64.iso",
+  "iso_bytes": 3368683520,
+  "iso_sha256": "c8295961d4c41adbf785a31a17c21a971d3b7415fda72dcad0c11c49577bf03a",
+  "checks": {
+    "publisher_checksum_matched": true,
+    "official_download_resolved": true,
+    "media_file_count": 356,
+    "uefi_loader_present": true,
+    "live_image_present": true,
+    "kernel_paths_present": true,
+    "kernel_menu_entries": 3,
+    "actual_engine_rewrites_optical_label": true,
+    "actual_engine_removes_optical_media_check": true,
+    "actual_engine_adds_installer_disk_release": true,
+    "actual_engine_edits_are_idempotent": true
+  },
+  "reproduce_recipe_check": "python tools/lab/check_fedora_media.py .lab/cache/Fedora-KDE-Desktop-Live-44-1.7.x86_64.iso",
+  "installation_evidence": {
+    "engine_prepared_carrier": "not tested",
+    "internal_carrier_boot": "not tested",
+    "installed_os_boot": "not tested",
+    "incumbent_data_preservation": "not tested",
+    "cleanup": "not tested",
+    "secure_boot_enabled": "not tested"
+  }
+}

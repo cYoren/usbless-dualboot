@@ -106,6 +106,7 @@ sudo ./bin/usbless-dualboot secureboot --verify
 | `shrink` | Back up GPT + LUKS header, scrub, shrink filesystem → LUKS → partition. |
 | `stage` | Create the FAT32 installer partition, copy the ISO, split `install.wim`. |
 | `boot` | Register a one-time UEFI entry; restore the default boot order later. |
+| `cleanup` | Preview or remove only an owned installer after both systems boot; keeps recovery metadata. |
 | `windows` | Add/remove a Windows entry in the boot menu. |
 | `secureboot` | `--prep` / `--enroll` / `--verify`: sign the Linux boot chain (sbctl) and enroll keys. |
 
@@ -146,7 +147,7 @@ No command automatically reboots the computer.
 | Area | Supported |
 |---|---|
 | Firmware | UEFI (GPT). BIOS is out of scope. |
-| Filesystems | Single-device Btrfs online shrink, optionally LUKS. ext4 is detected but automatic offline shrink is not implemented. |
+| Filesystems | Single-device Btrfs online shrink, optionally LUKS. Guarded unmounted ext4 shrink, directly or inside LUKS, with independent VM storage-fixture evidence; see [offline ext4](docs/OFFLINE-EXT4.md). |
 | Bootloaders | Limine, GRUB, systemd-boot (menu entry + ordering) |
 | Secure Boot | Custom keys via `sbctl`; keeps Microsoft keys so Windows still boots |
 | Distros | Any Arch-based or mainstream distro; Debian/Fedora tool mapping documented in `docs/DESIGN.md` |
@@ -189,8 +190,10 @@ The original Windows-on-Linux procedure has a real hardware case study. The gene
 phases changed since that run and still need disposable VM and hardware validation.
 Linux ISO loopback staging remains beta. The Windows-native application now builds locally;
 its installation matrix is under validation. Automatic downloads, storage placement and
-cleanup are being integrated across platforms. Linux ext4 shrink and broader installation
-coverage remain in development. See [coverage and validation](docs/COVERAGE.md) for evidence.
+cleanup are being integrated across platforms. Offline ext4 shrink and Linux-owned
+cleanup have isolated VM storage evidence. Full live-environment transitions, real Linux
+firmware cleanup and broader installation coverage remain in development. See
+[coverage and validation](docs/COVERAGE.md) for evidence.
 
 ## Recovery and licensing
 

@@ -47,6 +47,9 @@ generated GRUB is unsigned, so Secure Boot must be off or the GRUB signed first.
   root uses `/var/lib/usbless-dualboot/config.json` by default.
 - An interrupted shrink/stage blocks retry. Inspect the actual disk and backups before
   clearing `phase_in_progress`. Never reset a completion marker to repeat a destructive phase.
-- `boot --cancel` removes BootNext only; no automatic cleanup or undo is implemented.
+- `boot --cancel` removes BootNext only. `cleanup --installer-only --dry-run` reviews
+  removal of a carrier with a saved ownership record. Mutating cleanup additionally needs
+  `--confirm-both-booted`; it retains recovery metadata and does not grow OS filesystems.
+  Never infer ownership from a label or reset an interrupted phase to retry cleanup.
 - This Bash CLI runs on Linux. The Windows-native implementation is under `platforms/windows`.
   Validation results must remain specific to the platform, release and tested operation.

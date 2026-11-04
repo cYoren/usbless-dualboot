@@ -1,0 +1,21 @@
+{
+  "case": "windows-engine-suite",
+  "date": "2026-11-02",
+  "guest": "Microsoft Windows 11 Pro",
+  "vm": "windows-base",
+  "pester_version": "5.7.1",
+  "payload_sha256": "5c1529b838ca342d4f47e1cc26765efc8e0f38c97c73e5609bb1131997f15a78",
+  "executable_sha256": "37470273d7486298dda08647d3ccb6a3d447feb06bcc293f1d1fd0d5b2449880",
+  "command": "python tools/lab/client.py windows-base tests --timeout 600",
+  "result": {
+    "ok": true,
+    "passed": 594,
+    "failed": 0,
+    "skipped": 0,
+    "total": 594,
+    "failures": [],
+    "container_failures": []
+  },
+  "antivirus": "Defender enabled; no exclusion or protection bypass",
+  "scope": "Unit and hardening tests; does not establish OS installation success"
+}

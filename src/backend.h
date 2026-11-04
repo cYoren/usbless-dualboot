@@ -12,6 +12,7 @@ class Backend : public QObject {
     Q_PROPERTY(QString notice READ notice NOTIFY changed)
     Q_PROPERTY(QVariantMap system READ system NOTIFY changed)
     Q_PROPERTY(QVariantMap saved READ saved NOTIFY changed)
+    Q_PROPERTY(QVariantMap cleanupPreview READ cleanupPreview NOTIFY changed)
     Q_PROPERTY(QVariantList checks READ checks NOTIFY changed)
     Q_PROPERTY(QString logText READ logText NOTIFY changed)
     Q_PROPERTY(QString planText READ planText NOTIFY changed)
@@ -28,6 +29,8 @@ public:
     QString notice() const { return m_notice; }
     QVariantMap system() const { return m_system; }
     QVariantMap saved() const { return m_saved; }
+    QVariantMap cleanupPreview() const { return m_cleanupPreview; }
+    void previewCleanup(bool removed = false);
     QVariantList checks() const { return m_checks; }
     QString logText() const { return m_log; }
     QString planText() const { return m_plan; }
@@ -57,7 +60,7 @@ private:
     void readView();
     void runReadOnly(const QStringList &args, const QString &kind);
     QString m_engine, m_state, m_error, m_notice, m_log, m_plan, m_iso, m_checksum, m_size, m_direction = "windows";
-    QVariantMap m_system, m_saved;
+    QVariantMap m_system, m_saved, m_cleanupPreview;
     QVariantList m_checks;
     QFileSystemWatcher m_watcher;
     QByteArray m_viewBytes;

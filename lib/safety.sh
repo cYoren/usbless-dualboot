@@ -12,7 +12,7 @@ payload_size_bytes() {
 
 verify_planned_iso() {
   local iso expected
-  iso=$(cfg_get .iso); expected=$(cfg_get '.iso_sha256 // empty')
+  iso=${1:-$(cfg_get .iso)}; expected=$(cfg_get '.iso_sha256 // empty')
   [[ -f $iso && -n $expected ]] || die "missing ISO or saved checksum; create a new plan"
   [[ $(iso_hash "$iso") == "$expected" ]] || die "ISO changed since planning; refusing to continue"
 }
@@ -82,7 +82,7 @@ backup_partition_table() {
   dd if="$disk" of="$BACKUP_DIR/gpt-secondary.bin" bs=512 skip="$((sectors - 33))" count=33 status=none
   if [[ -n $(cfg_get '.linux_mapper // empty') ]]; then
     need_cmd cryptsetup
-    cryptsetup luksHeaderBackup "$(cfg_get .linux_part)" --header-backup-file "$BACKUP_DIR/luks-header.img"
+    cryptsetup luksHeaderBackup "${3:-$(cfg_get .linux_part)}" --header-backup-file "$BACKUP_DIR/luks-header.img"
   fi
   cfg_set last_backup "$BACKUP_DIR"
   log "Recovery metadata: $BACKUP_DIR"

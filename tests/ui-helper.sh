@@ -20,6 +20,17 @@ if "$ROOT/bin/ui-action" "$ENGINE" "$STATE" shrink > "$TMP/terminal.log"; then
 fi
 jq -e '.exit_code == 42 and .action == "shrink"' "$STATE/view.json" >/dev/null
 [[ $before == "$(sha256sum "$STATE/plan.log")" && ! -e $STATE/running ]]
+"$ROOT/bin/ui-action" "$ENGINE" "$STATE" cleanup-preview > "$TMP/terminal.log"
+jq -e '.exit_code == 0 and .cleanup_preview.carrier == "sample4" and .cleanup_preview.bytes == 1073741824' "$STATE/view.json" >/dev/null
+grep -Fx -- '--dry-run' "$USBDB_TEST_RECEIVED" >/dev/null
+grep -Fx -- '--installer-only' "$USBDB_TEST_RECEIVED" >/dev/null
+if USBDB_TEST_BAD_CLEANUP=1 "$ROOT/bin/ui-action" "$ENGINE" "$STATE" cleanup-preview > "$TMP/terminal.log" 2>&1; then
+  echo 'FAIL malformed removal preview accepted'; exit 1
+fi
+jq -e '.exit_code != 0 and .cleanup_preview == null' "$STATE/view.json" >/dev/null
+"$ROOT/bin/ui-action" "$ENGINE" "$STATE" cleanup > "$TMP/terminal.log"
+grep -Fx -- '--confirm-both-booted' "$USBDB_TEST_RECEIVED" >/dev/null
+grep -Fx -- '--installer-only' "$USBDB_TEST_RECEIVED" >/dev/null
 if "$ROOT/bin/ui-action" "$ENGINE" "$STATE" arbitrary > "$TMP/terminal.log" 2>&1; then
   echo 'FAIL unknown action accepted'; exit 1
 fi

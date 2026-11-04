@@ -1,0 +1,27 @@
+{
+  "case": "linux-native-installer-cleanup-interface",
+  "date": "2026-11-03",
+  "kind": "Native Qt UI, privilege-helper and sample-data rendering checks; not installation evidence",
+  "build": "bash bin/build-ui",
+  "tests": {
+    "command": "GSETTINGS_BACKEND=memory bash bin/test-ui",
+    "passed": 16,
+    "failed": 0,
+    "skipped": 0,
+    "checks": ["Preview cannot launch storage actions", "Removal requires a successful reviewed preview", "Preview must match the saved partition identity and size", "Both-system confirmation and final plan consent gate removal", "Terminal paths remain literal", "Konsole uses argument arrays without a shell command string"]
+  },
+  "privilege_helper": "tests/ui-helper.sh passed, including structured preview parsing, malformed-preview refusal and installer-only/confirmation arguments",
+  "rendered_binary_sha256": "f1295f8ff63e62016c675a07f7126c776b017a00163e6139fdb3884bb2be5a33",
+  "current_executable_sha256": "f1eb8e1806109652967af77939fc907a48e6c647513c61285caefb7c401fad94",
+  "subsequent_targeted_consent_test": "Passed after adding target-change consent invalidation; init, consent test and cleanup all passed (3/3), no QML warnings. No layout change followed the recorded screenshots.",
+  "screenshots": [
+    {"file": "linux-cleanup-ui-390.png", "width": 390, "height": 844, "language": "en"},
+    {"file": "linux-cleanup-ui-820.png", "width": 820, "height": 1180, "language": "en"},
+    {"file": "linux-cleanup-ui-1440.png", "width": 1440, "height": 900, "language": "en"},
+    {"file": "linux-cleanup-ui-390-pt.png", "width": 390, "height": 844, "language": "pt-BR"},
+    {"file": "linux-cleanup-ui-complete-390-pt.png", "width": 390, "height": 844, "language": "pt-BR", "state": "sample installer_removed"}
+  ],
+  "visual_iteration": "At 390px the confirmation was below repeated post-installation instructions. After preview, the screen now focuses on the target and both-system confirmation; the guarded removal action stays in the footer. All three sizes were re-rendered and inspected, plus Portuguese and completed-state views.",
+  "qml_warnings": 0,
+  "limits": ["All screenshot data are explicitly marked as sample data", "Screenshots and Qt tests never mutate disks or firmware", "Real Linux installer boot, installation and firmware-cleanup workflow remain separate acceptance work"]
+}

@@ -59,4 +59,14 @@ blind restore commands are intentionally not supplied.
 Only consider removing the installer after booting and checking both operating systems.
 Keep recovery metadata separately. Match partition UUID and sector range to the saved
 plan, and ensure no installed OS uses that partition. A label alone proves no ownership.
-Automatic deletion, space reclamation, undo and filesystem growth are not implemented.
+Use the same config with `cleanup --installer-only --dry-run` to inspect the actual
+carrier, range, EFI loader and firmware selection. `--json` is available for this preview.
+After both installed systems have booted and their data have been checked,
+`cleanup --installer-only --confirm-both-booted` removes only the recorded installer.
+It preserves recovery metadata and other files in the EFI directory. Older plans without
+ownership records, changed identities, mounted carriers and ambiguous boot entries are
+refused. A completed cleanup cannot be repeated or scheduled for installer boot again.
+
+Cleanup does not undo a shrink or grow an OS filesystem. It leaves the region available.
+Linux storage/EFI-file fixtures use mocked firmware; a real Linux-hosted installation and
+firmware-cleanup cycle remains separate validation work. See [coverage](COVERAGE.md).

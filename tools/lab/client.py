@@ -5,19 +5,33 @@ import json
 from pathlib import Path
 import socket
 
+from vm import directory
+
 
 def main():
     root=Path(__file__).resolve().parents[2]
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('name')
-    parser.add_argument('action',choices=['status','tests','ui','shutdown'])
+    parser.add_argument('action',choices=['status','inspect','tests','ui','shutdown','reboot','boot-windows','test-ext4','test-cleanup','plan-kde','prepare-kde','cleanup-kde'])
     parser.add_argument('--seed',type=Path,default=root/'.lab/seeds/windows-base')
     parser.add_argument('--timeout',type=int,default=120)
+    parser.add_argument('--media-port',type=int,default=8765)
+    parser.add_argument('--sentinel')
+    parser.add_argument('--plan-id')
+    parser.add_argument('--source-sha256')
+    parser.add_argument('--encrypted',action='store_true')
     args=parser.parse_args()
-    config=json.loads((root/'.lab/vms'/args.name/'vm.json').read_text())
+    folder=directory(args.name,root/'.lab')
+    config=json.loads((folder/'vm.json').read_text())
+    if config.get('disposable') is not True:
+        raise ValueError('VM is not marked disposable')
+    if not 1 <= args.timeout <= 3600:
+        raise ValueError('Timeout must be between 1 and 3600 seconds')
     token=json.loads((args.seed/'agent.json').read_text())['token']
     with socket.create_connection(('127.0.0.1',int(config['agent_port'])),timeout=args.timeout) as connection:
-        connection.sendall((json.dumps({'action':args.action,'token':token})+'\n').encode())
+        connection.sendall((json.dumps({'action':args.action,'token':token,'media_port':args.media_port,
+                                       'sentinel':args.sentinel,'plan_id':args.plan_id,
+                                       'source_sha256':args.source_sha256,'encrypted':args.encrypted})+'\n').encode())
         stream=connection.makefile('rb')
         response=json.loads(stream.readline())
     print(json.dumps(response,indent=2))
@@ -26,4 +40,8 @@ def main():
 
 
 if __name__=='__main__':
-    main()
+    try:
+        main()
+    except (OSError, ValueError, KeyError) as error:
+        print(json.dumps({'ok':False,'error':str(error)}))
+        raise SystemExit(1)

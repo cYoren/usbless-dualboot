@@ -5,6 +5,7 @@ set -Eeuo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=common.sh
 source "$HERE/common.sh"
+source "$HERE/ownership.sh"
 
 DRY=0
 while (($#)); do
@@ -140,6 +141,7 @@ else need_cmd mkfs.fat; fi
 inst_partnum=$(next_partition_number "$DISK")
 CARRIER=$(partition_path "$DISK" "$inst_partnum")
 phase_begin stage
+[[ ! -b $CARRIER ]] || die "unexpected partition already occupies the planned installer device"
 backup_partition_table "$DISK" stage
 save_boot_order
 
@@ -184,7 +186,12 @@ efibootmgr --create-only --disk "/dev/$esp_disk" --part "$esp_partnum" \
 
 cfg_set installer_part "$CARRIER"
 cfg_set installer_partnum "$inst_partnum"
+# Used to match the UEFI entry, whose loader is on the ESP, not the ISO carrier.
+# Cleanup must record and validate the carrier's own identity separately.
 cfg_set installer_partuuid "$(blkid -s PARTUUID -o value "$ESP_PART")"
+record_carrier_ownership "$CARRIER"
+cfg_set owned_loader_esp_uuid "$(blkid -s PARTUUID -o value "$ESP_PART")"
+cfg_set owned_loader_sha256 "$(iso_hash "$ESP_MOUNT/EFI/usbless/grubx64.efi")"
 phase_done stage
 log
 log "Linux installer staged. Reboot and pick 'Linux Installer'."

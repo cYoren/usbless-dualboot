@@ -1,0 +1,28 @@
+{
+  "case": "fedora-kde-44-installed-boot",
+  "date": "2026-11-02",
+  "vm": "windows-base",
+  "iso_attached_to_qemu": false,
+  "installation": "Anaconda reported Successfully installed",
+  "boot_menu": [
+    "Fedora Linux (6.19.10-300.fc44.x86_64) 44 (KDE Plasma Desktop Edition)",
+    "Windows Boot Manager (on /dev/sda1)"
+  ],
+  "installed_account_login": true,
+  "kernel": "6.19.10-300.fc44.x86_64",
+  "root": {
+    "target": "/",
+    "source": "/dev/sda7[/root]",
+    "fstype": "btrfs",
+    "subvolume": "/root"
+  },
+  "screenshots": ["fedora-kde-44-dual-boot-menu.png", "fedora-kde-44-installed-desktop.png"],
+  "windows_loader": {
+    "path": "/boot/efi/EFI/Microsoft/Boot/bootmgfw.efi",
+    "sha256_before_install": "32b233afb2a8b4c517003796d435358dcad78e421a3ed386b8ee275a6957dbd0",
+    "sha256_after_install": "32b233afb2a8b4c517003796d435358dcad78e421a3ed386b8ee275a6957dbd0",
+    "unchanged": true
+  },
+  "pending": ["Windows boot after Linux installation", "Windows data sentinel after installation", "installer-only cleanup", "both OS boots after cleanup"],
+  "secure_boot": "Not enabled; no key enrollment was performed"
+}

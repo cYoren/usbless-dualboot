@@ -415,7 +415,7 @@ Describe 'Removing startup entries' {
 }
 
 Describe 'Room on the EFI partition' {
-    It 'counts the loader usbless is about to replace, and an older name for it' {
+    It 'counts only the owned loader and preserves differently named applications' {
         $root = New-Folder "$TestDrive\esp1"
         New-Folder "$root\EFI\usbless\sub" | Out-Null
         New-Folder "$root\EFI\linuxusbless" | Out-Null
@@ -423,7 +423,7 @@ Describe 'Room on the EFI partition' {
         [IO.File]::WriteAllBytes("$root\EFI\usbless\sub\a.efi", (New-Object byte[] 100))
         [IO.File]::WriteAllBytes("$root\EFI\linuxusbless\b.efi", (New-Object byte[] 20))
         [IO.File]::WriteAllBytes("$root\EFI\other\c.efi", (New-Object byte[] 999))
-        Get-OwnLoaderBytes $root | Should -Be 120
+        Get-OwnLoaderBytes $root | Should -Be 100
     }
     It 'is nothing when there is none' {
         Get-OwnLoaderBytes (New-Folder "$TestDrive\esp2") | Should -Be 0
@@ -554,7 +554,7 @@ Describe 'diskpart' {
 
 Describe 'The real diskpart' {
     It 'reads commands from its input, here only listing disks' -Skip:(-not $elevated) {
-        Invoke-Diskpart @('list disk', 'exit') | Should -Match 'Disk 0'
+        Invoke-Diskpart @('list disk', 'exit') | Should -Match '(?m)^\s*[^0-9\r\n]+\s+0\s+'
     }
 }
 
@@ -723,7 +723,7 @@ Describe 'Make room''s steps' {
 }
 
 Describe 'Saying when Make room gave up' {
-    BeforeEach { $script:RoomPath = Join-Path $TestDrive 'room.json' }
+    BeforeEach { $RoomPath = Join-Path $TestDrive 'room.json' }
 
     It 'says nothing when it did not' {
         Get-RoomGaveUpWarning | Should -BeNullOrEmpty

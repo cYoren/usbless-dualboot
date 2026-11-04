@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import signal
 import socket
 import subprocess
 import sys
@@ -33,6 +34,31 @@ def regular_file(path):
     if not resolved.is_file() or str(resolved).startswith("/dev/"):
         raise ValueError("Only regular image files are allowed; host block devices are forbidden")
     return resolved
+
+
+def stop_tpm(folder):
+    """Stop only TPM helpers bound to this VM's exact private control path."""
+    executable = os.fsencode(TOOLS / 'usr/bin/swtpm')
+    control = os.fsencode('type=unixio,path=' + str(folder / 'tpm.sock'))
+    for entry in Path('/proc').glob('[0-9]*/cmdline'):
+        try:
+            arguments = entry.read_bytes().split(b'\0')
+            if arguments[0] == executable and control in arguments:
+                os.kill(int(entry.parent.name), signal.SIGTERM)
+        except (FileNotFoundError, ProcessLookupError, PermissionError):
+            continue
+
+
+def validate_disk_chain(disk, folder):
+    """Snapshots may only read regular backing files in this same private VM."""
+    layers = json.loads(command('qemu-img', ['info', '--backing-chain', '--output=json', disk]).stdout)
+    for layer in layers:
+        path = Path(layer['filename'])
+        if not path.is_absolute():
+            path = disk.parent / path
+        resolved = regular_file(path)
+        if resolved.parent != folder.resolve():
+            raise ValueError('Backing disks must remain inside their own private VM directory')
 
 
 def directory(name, lab):
@@ -69,16 +95,56 @@ def request(path, execute, arguments=None):
 
 
 def send_keys(folder, keys):
-    request(folder/'qmp.sock','send-key',{'keys':[{'type':'qcode','data':key} for key in keys],'hold-time':10})
+    monitor = folder / 'qmp.sock'
+    request(monitor, 'input-send-event', {'events': [
+        {'type': 'key', 'data': {'down': True, 'key': {'type': 'qcode', 'data': key}}}
+        for key in keys]})
+    try:
+        time.sleep(.05)
+    finally:
+        # Explicit key-up avoids timer-based modifiers remaining pressed in busy guests.
+        request(monitor, 'input-send-event', {'events': [
+            {'type': 'key', 'data': {'down': False, 'key': {'type': 'qcode', 'data': key}}}
+            for key in reversed(keys)]})
+    time.sleep(.025)
+
+
+def click_point(folder, x, y):
+    monitor = folder / 'qmp.sock'
+    screen = folder / 'screen.ppm'
+    request(monitor, 'screendump', {'filename': str(screen)})
+    with screen.open('rb') as capture:
+        header = capture.read(128).split()
+    if len(header) < 4 or header[0] != b'P6':
+        raise ValueError('Unexpected VM screenshot format')
+    width, height = int(header[1]), int(header[2])
+    if width < 2 or height < 2 or not (0 <= x < width and 0 <= y < height):
+        raise ValueError('Click must be inside the current VM screenshot')
+    if not any(mouse.get('current') and mouse.get('absolute') for mouse in request(monitor, 'query-mice')):
+        raise ValueError('The VM needs an active absolute pointer for screen coordinates')
+    request(monitor, 'input-send-event', {'events': [
+        {'type': 'abs', 'data': {'axis': 'x', 'value': round(x / (width - 1) * 32767)}},
+        {'type': 'abs', 'data': {'axis': 'y', 'value': round(y / (height - 1) * 32767)}}]})
+    # Allow the guest pointer to reach the field before its button event arrives.
+    time.sleep(.15)
+    request(monitor, 'input-send-event', {'events': [{'type': 'btn', 'data': {'down': True, 'button': 'left'}}]})
+    time.sleep(.1)
+    request(monitor, 'input-send-event', {'events': [{'type': 'btn', 'data': {'down': False, 'button': 'left'}}]})
 
 
 def type_text(folder, text, layout):
     plain={ ' ':'spc','.':'dot',',':'comma','-':'minus','=':'equal','/':'slash','\\':'backslash',
-            ';':'semicolon',"'":'apostrophe','[':'bracket_left',']':'bracket_right','`':'grave' }
+            ';':'semicolon',"'":'apostrophe','[':'bracket_left',']':'bracket_right','`':'grave_accent' }
     shifted={':':'semicolon','>':'dot','<':'comma','_':'minus','+':'equal','"':'apostrophe',
-              '(':'9',')':'0','&':'7','|':'backslash','!':'1','?':'slash'}
+              '(':'9',')':'0','&':'7','|':'backslash','!':'1','?':'slash',
+              '%':'5','*':'8','$':'4','#':'3','@':'2','^':'6','~':'grave_accent'}
     german={':':['shift','dot'],'\\':['alt_r','minus'],'-':['slash'],'/':['shift','7'],
-            '>':['shift','less'],'<':['less'],';':['shift','comma'],'_':['shift','slash']}
+            '>':['shift','less'],'<':['less'],';':['shift','comma'],'_':['shift','slash'],
+            '*':['shift','bracket_right'],'@':['alt_r','q'],'|':['alt_r','less'],
+            '(':[ 'shift','8'],')':['shift','9'],'&':['shift','6'],'"':['shift','2'],
+            '=':['shift','0'],'?':['shift','minus'],'+':['bracket_right'],
+            '~':['alt_r','bracket_right']}
+    sequences = []
     for character in text:
         if layout=='de' and character in german:
             keys=german[character]
@@ -92,8 +158,12 @@ def type_text(folder, text, layout):
             keys=[plain[character]]
         else:
             raise ValueError('Unsupported keyboard character in VM command')
+        sequences.append(keys)
+    # Reject an unsupported command before leaving half of it in the guest.
+    for keys in sequences:
         send_keys(folder,keys)
-        time.sleep(.025)
+        # Busy graphical guests need time to consume key-up before the next key.
+        time.sleep(.2)
 
 
 def create(args, folder):
@@ -108,7 +178,8 @@ def create(args, folder):
     if not 256 <= args.memory <= 8192:
         raise ValueError("Guest memory must be between 256 and 8192 MiB")
     firmware = TOOLS / "usr/share/edk2/x64"
-    code = regular_file(firmware / "OVMF_CODE.4m.fd")
+    code_name = 'OVMF_CODE.secboot.4m.fd' if args.secure_boot_capable else 'OVMF_CODE.4m.fd'
+    code = regular_file(firmware / code_name)
     variables = regular_file(firmware / "OVMF_VARS.4m.fd")
     shutil.copyfile(variables, folder / "OVMF_VARS.fd")
     command("qemu-img", ["create", "-f", "qcow2", folder / "system.qcow2", args.size])
@@ -133,8 +204,24 @@ def start(args, folder):
     if monitor.exists():
         try:
             return print(json.dumps(request(monitor, "query-status")))
-        except OSError:
+        except (FileNotFoundError, ConnectionRefusedError):
             monitor.unlink()
+    pid_file = folder / 'qemu.pid'
+    if pid_file.exists():
+        pid = pid_file.read_text().strip()
+        if pid.isdigit():
+            try:
+                arguments = Path('/proc', pid, 'cmdline').read_bytes().split(b'\0')
+            except FileNotFoundError:
+                arguments = []
+            disk_option = os.fsencode('file=' + str(disk))
+            if arguments and arguments[0] == os.fsencode(TOOLS / 'usr/bin/qemu-system-x86_64') and any(
+                    disk_option in argument.split(b',') for argument in arguments):
+                raise RuntimeError('The VM is still running without a reachable monitor; refusing a second start')
+    # QEMU can exit while its TPM helper remains alive. Never unlink a live
+    # helper's socket and spawn another process over the same persistent state.
+    stop_tpm(folder)
+    validate_disk_chain(disk, folder)
     argv = ["-name", "usbless-lab-" + args.name, "-machine", "q35,accel=kvm", "-cpu", "host", "-smp", "2",
             "-smbios", "type=1,manufacturer=USBlessLab,product=DisposableVM,serial=" + config.get('uuid','firmware-smoke'),
             "-m", str(config["memory_mib"]), "-display", "none", "-vga", "std",
@@ -144,11 +231,13 @@ def start(args, folder):
             "-drive", "if=none,id=os,format=qcow2,file=" + str(disk),
             "-device", "ide-hd,drive=os,bus=ide.0,serial=USBDBLABSYSTEM",
             "-qmp", "unix:" + str(monitor) + ",server=on,wait=off",
-            "-serial", "file:" + str(folder / "serial.log"), "-no-reboot"]
-    # Installation naturally restarts several times; -no-reboot is only useful for
-    # firmware smoke cases and must not stop a Windows/Linux unattended install.
+            "-serial", "file:" + str(folder / "serial.log")]
+    if '.secboot.' in Path(config['firmware']).name:
+        argv[argv.index('-machine') + 1] += ',smm=on'
+        argv += ['-global', 'driver=cfi.pflash01,property=secure,value=on']
+    # Both installation and testing naturally restart the guest several times.
+    # Do not use -no-reboot even when booting an already installed system.
     if config.get("iso"):
-        argv.remove("-no-reboot")
         argv += ["-drive", "if=none,id=installer,format=raw,media=cdrom,readonly=on,file=" + str(regular_file(config["iso"])),
                  "-device", "ide-cd,drive=installer,bus=ide.1", "-boot", "order=d,once=d,menu=on"]
     if config.get("seed"):
@@ -207,6 +296,8 @@ def main():
     create_parser.add_argument("--iso")
     create_parser.add_argument("--seed")
     create_parser.add_argument("--tpm", action="store_true")
+    create_parser.add_argument('--secure-boot-capable', action='store_true',
+                               help='Use Secure Boot-capable firmware (does not enroll keys)')
     start_parser = sub.add_parser("start")
     start_parser.add_argument("name")
     start_parser.add_argument("--offline", action="store_true")
@@ -215,11 +306,18 @@ def main():
     key_parser=sub.add_parser('key')
     key_parser.add_argument('name')
     key_parser.add_argument('combination')
+    click_parser = sub.add_parser('click')
+    click_parser.add_argument('name')
+    click_parser.add_argument('x', type=int)
+    click_parser.add_argument('y', type=int)
     text_parser=sub.add_parser('type')
     text_parser.add_argument('name')
     text_parser.add_argument('text')
     text_parser.add_argument('--layout',choices=['us','de'],default='us')
     text_parser.add_argument('--enter',action='store_true')
+    link_parser = sub.add_parser('link')
+    link_parser.add_argument('name')
+    link_parser.add_argument('state', choices=['up', 'down'])
     args = parser.parse_args()
     folder = directory(args.name, args.lab)
     if args.action == "create":
@@ -233,6 +331,10 @@ def main():
     elif args.action == 'type':
         type_text(folder,args.text,args.layout)
         if args.enter: send_keys(folder,['ret'])
+    elif args.action == 'click':
+        click_point(folder, args.x, args.y)
+    elif args.action == 'link':
+        print(json.dumps(request(folder / 'qmp.sock', 'set_link', {'name': 'n0', 'up': args.state == 'up'})))
     elif args.action == 'boot-media':
         # Installation DVDs wait for a key on their first boot. This operates
         # only through this disposable VM's private QMP socket.
@@ -245,6 +347,8 @@ def main():
         operations = {"status": "query-status", "screenshot": "screendump", "powerdown": "system_powerdown", "quit": "quit"}
         values = {"filename": str(folder / "screen.ppm")} if args.action == "screenshot" else {}
         print(json.dumps(request(folder / "qmp.sock", operations[args.action], values)))
+        if args.action == 'quit':
+            stop_tpm(folder)
 
 
 if __name__ == "__main__":

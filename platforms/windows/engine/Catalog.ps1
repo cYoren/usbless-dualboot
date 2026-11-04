@@ -200,6 +200,15 @@ function Get-Catalog {
             Kind = 'fedora'; Manual = 'Manual disk configuration'; Steps = $AnacondaSteps
             FullDisk = (Get-FullDiskBoot 'dracut') + @{ IsoGB = 3; Steps = $AnacondaErase }
             SecondDisk = @{ EspLinuxMB = 0; Steps = $AnacondaSecondDisk; Notes = @("Afterwards this PC starts Fedora, from that disk. Its menu lists Windows too.") } })
+        # Additional recipe; installation evidence remains independent from Workstation.
+        New-Entry 'fedora-kde' 'Fedora KDE Plasma' 'Customizable desktop' 'fedoraproject.org' '#1D99F3' 'fedora-kde' ((Get-DracutBoot 'boot/grub2') + @{
+            Kind = 'fedora'; Edition = 'KDE'; Manual = 'Manual disk configuration'; Steps = @(
+                'In the KDE Welcome Center, click **Install to Hard Drive**. The same launcher is on the desktop.'
+                'Choose your language and keyboard, then click **Next**.'
+                'Under **Destination**, click **Change destination** and select **{DISK}**, which contains Windows.'
+                'Choose **Share disk with other operating systems**. Leave **Reclaim additional space** unchecked: usbless already reserved {GB} GB.'
+                'Keep Windows and its EFI partition. Do not choose **Use entire disk**.')
+            Notes = @('Fedora KDE 44 completed installation, both-system boot and installer cleanup in the recorded single-disk UEFI case with Secure Boot off.') })
         New-Entry 'debian' 'Debian' 'Rock solid' 'cdimage.debian.org' '#A80030' 'debian' @{
             Kind = 'debian'; Live = 'live/filesystem.squashfs'; Manual = 'Manual partitioning'; ManualExtra = $EspExtra
             FullDisk = (Get-FullDiskBoot 'liveboot') + @{ IsoGB = 3; Steps = @(

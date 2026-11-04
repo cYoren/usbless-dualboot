@@ -50,8 +50,11 @@ def main():
     (output/'agent.json').write_text(json.dumps({'token':token})+'\n')
     (output/'credentials.json').write_text(json.dumps({'username':'LabAdmin','password':password,'token':token})+'\n')
     shutil.copyfile(REPO/'tools/lab/guest-agent.ps1',output/'guest-agent.ps1')
+    shutil.copyfile(REPO/'tools/lab/windows-layout.cmd',output/'windows-layout.cmd')
+    (output/'USBDB-LAB.marker').write_text('USBless disposable VM installation seed\n')
     with zipfile.ZipFile(output/'payload.zip','w',compression=zipfile.ZIP_DEFLATED) as archive:
         archive.write(exe,'usbless.exe')
+        archive.write(REPO/'tools/lab/case-fedora-kde.ps1','case-fedora-kde.ps1')
         source=REPO/'platforms/windows'
         for folder in ['engine','tests','src']:
             for path in sorted((source/folder).rglob('*')):
@@ -62,24 +65,7 @@ def main():
             for member in package.infolist():
                 if member.is_dir() or member.filename.startswith(('_rels/','package/')): continue
                 archive.writestr('Pester/'+member.filename,package.read(member))
-    bootstrap=r'''$ErrorActionPreference='Stop'
-$pc=Get-CimInstance Win32_ComputerSystem
-if($pc.Manufacturer -ne 'USBlessLab' -or $pc.Model -ne 'DisposableVM'){throw 'Not a disposable lab VM'}
-$seed=(Get-Volume | Where-Object FileSystemLabel -eq 'USBDBSEED' | Select-Object -First 1).DriveLetter
-if(-not $seed){throw 'Lab seed media missing'}
-$source="$seed`:\"
-$root=Join-Path $env:ProgramData 'USBlessLab'
-New-Item -ItemType Directory -Path $root -Force | Out-Null
-Copy-Item (Join-Path $source 'agent.json') $root -Force
-Copy-Item (Join-Path $source 'guest-agent.ps1') $root -Force
-Expand-Archive (Join-Path $source 'payload.zip') (Join-Path $root 'payload') -Force
-'USBless incumbent-data preservation sentinel' | Set-Content (Join-Path $root 'preserve-sentinel.txt')
-$action=New-ScheduledTaskAction -Execute 'powershell.exe' -Argument ('-NoLogo -NoProfile -ExecutionPolicy Bypass -File "'+(Join-Path $root 'guest-agent.ps1')+'"')
-$trigger=New-ScheduledTaskTrigger -AtLogOn -User 'LabAdmin'
-Register-ScheduledTask -TaskName 'USBless disposable lab agent' -Action $action -Trigger $trigger -User 'LabAdmin' -RunLevel Highest -Force | Out-Null
-Start-ScheduledTask -TaskName 'USBless disposable lab agent'
-'''
-    (output/'bootstrap.ps1').write_text(bootstrap)
+    shutil.copyfile(REPO/'tools/lab/windows-bootstrap.ps1',output/'bootstrap.ps1')
     first_logon=r'''$seed=(Get-Volume | Where-Object FileSystemLabel -eq 'USBDBSEED' | Select-Object -First 1).DriveLetter; & "$seed`:\bootstrap.ps1"'''
     encoded=base64.b64encode(first_logon.encode('utf-16le')).decode('ascii')
     language=escape(args.language)
@@ -88,7 +74,7 @@ Start-ScheduledTask -TaskName 'USBless disposable lab agent'
     component='processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"'
     # The disk wipe is guarded inside the same WinPE command that creates the
     # layout. Even a misplaced seed refuses to wipe an ordinary physical PC.
-    layout_command=escape(r'cmd.exe /c "reg query HKLM\HARDWARE\DESCRIPTION\System\BIOS /v SystemManufacturer | findstr /c:USBlessLab >nul && (echo select disk 0 & echo clean & echo convert gpt & echo create partition efi size=512 & echo format quick fs=fat32 label=USBDBLABEFI & echo create partition msr size=16 & echo create partition primary & echo format quick fs=ntfs label=USBDBLABWIN & echo assign letter=C & echo exit) >X:\usbless-layout.txt && diskpart.exe /s X:\usbless-layout.txt || (wpeutil shutdown & exit /b 1)"')
+    layout_command=escape(r'cmd.exe /c for %d in (C D E F G H I J K L M N O P Q R S T U V W Y Z) do if exist %d:\USBDB-LAB.marker call %d:\windows-layout.cmd')
     xml=f'''<?xml version="1.0" encoding="utf-8"?>
 <unattend xmlns="urn:schemas-microsoft-com:unattend" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
   <settings pass="windowsPE">
@@ -121,7 +107,8 @@ Start-ScheduledTask -TaskName 'USBless disposable lab agent'
     (output/'Autounattend.xml').write_text(xml)
     image_path=output/'seed.img'
     run('mformat',['-i',image_path,'-C','-F','-T','262144','-v','USBDBSEED','::'])
-    for filename in ['Autounattend.xml','bootstrap.ps1','guest-agent.ps1','agent.json','payload.zip']:
+    for filename in ['Autounattend.xml','bootstrap.ps1','guest-agent.ps1','agent.json','payload.zip',
+                     'windows-layout.cmd','USBDB-LAB.marker']:
         run('mcopy',['-i',image_path,output/filename,'::/'+filename])
     print(json.dumps({'seed':str(image_path),'payload_bytes':(output/'payload.zip').stat().st_size}))
 

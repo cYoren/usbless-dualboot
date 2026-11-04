@@ -1,0 +1,71 @@
+{
+  "case": "fedora-kde-44-preservation-and-installer-cleanup",
+  "date": "2026-11-02",
+  "vm": "windows-base",
+  "status": "preservation-recovery-validated",
+  "completed_date": "2026-11-03",
+  "linux_before_cleanup": {
+    "sentinel_path": "/home/usblab/preserve",
+    "sentinel_sha256": "55b7f19a33abb3a3dbe32a89602d91f5119373f2f5a7f8ca9f37d265d3f2c1a2",
+    "sentinel_creation": "Created only if absent using date -Ins; nonempty contents hashed through guest serial",
+    "efi_partuuid": "196ef89b-59df-4668-92fd-31624e068f62",
+    "windows_partuuid": "afe7c143-06c7-4812-93fe-8bf3defe3c32",
+    "installer_partuuid": "c33c6a98-bacd-446d-a3a5-b671f145319b",
+    "installer_size": "4G",
+    "boot_partuuid": "53f33539-4c82-40b7-80fd-e739ab190d02",
+    "boot_size": "2G",
+    "root_partuuid": "da255634-cd51-4db0-b4c1-07e2e195f6c2",
+    "root_size": "23G",
+    "root_filesystem": "btrfs",
+    "observed_firmware_entries": {
+      "0003": "Fedora KDE Plasma installer (usbless), EFI/usbless/BOOTX64.EFI",
+      "0009": "Windows Boot Manager, EFI/Microsoft/Boot/bootmgfw.efi",
+      "000A": "Fedora, EFI/fedora/shimx64.efi"
+    }
+  },
+  "windows_after_installation": {
+    "booted": true,
+    "sentinel_unchanged": true,
+    "sentinel_sha256": "185710B65F8518ED5706BFF3DB0B203C09C35916F3B83C403A639E012DFDC088",
+    "native_ui_detected_installed_linux": true,
+    "payload_sha256": "f112bfa7cd37c98adfd3428a58c362b092bad4139aa1788c884da1839e0194f3",
+    "executable_sha256": "37596c1110f926631b46c7f5f51556642993a9e83736fc176b8ac062d8b466ae"
+  },
+  "installer_cleanup": {
+    "method": "Native Windows app, installed-Linux page, Remove the installer button",
+    "completed": true,
+    "removed_partuuid": "c33c6a98-bacd-446d-a3a5-b671f145319b",
+    "only_installer_partition_removed": true,
+    "windows_bytes_before": 104908980224,
+    "windows_bytes_after": 109203947520,
+    "reclaimed_bytes": 4294967296,
+    "all_other_partition_guids_offsets_sizes_unchanged": true,
+    "windows_sentinel_unchanged": true,
+    "saved_preparation_state_cleared": true,
+    "snapshots": ["fedora-kde-44-windows-before-cleanup.json", "fedora-kde-44-windows-after-cleanup.json"],
+    "screenshots": ["fedora-kde-44-windows-detected-installed.png", "fedora-kde-44-installer-removed.png"]
+  },
+  "linux_after_cleanup": {
+    "date": "2026-11-03",
+    "booted_and_logged_in": true,
+    "sentinel_unchanged": true,
+    "root_partuuid_unchanged": true,
+    "root_size_bytes": 24696061952,
+    "boot_size_bytes": 2147483648,
+    "root_source": "/dev/sda5[/root]",
+    "root_filesystem": "btrfs",
+    "device_number_note": "Windows compacted GPT slot numbering after deletion; match persistent PARTUUIDs, not sda numbers",
+    "windows_loader_sha256_unchanged": true,
+    "windows_loader_sha256": "32b233afb2a8b4c517003796d435358dcad78e421a3ed386b8ee275a6957dbd0",
+    "installer_firmware_entry_absent": true,
+    "efi_directories": { "Microsoft": true, "fedora": true, "usbless": false },
+    "evidence": "fedora-kde-44-linux-after-cleanup.json"
+  },
+  "windows_after_cleanup_return": {
+    "booted": true,
+    "sentinel_unchanged": true,
+    "evidence": "fedora-kde-44-windows-after-return.json"
+  },
+  "limits": ["Secure Boot disabled", "No Linux encryption", "Single system disk", "Normal boot recovery and installer cleanup only; no simulated power-loss recovery"],
+  "pending": []
+}

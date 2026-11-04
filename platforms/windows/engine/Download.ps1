@@ -7,7 +7,10 @@ function Get-WebText([string]$Url) {
             if ($content -is [byte[]]) { $content = [Text.Encoding]::UTF8.GetString($content) }
             return $content
         } catch {
-            if ($attempt -ge 3) { throw }
+            $status = if ($_.Exception.Response) { [int]$_.Exception.Response.StatusCode } else { 0 }
+            # A missing release/checksum does not become available by repeating
+            # the same request. Keep retries for timeouts, rate limits and 5xx.
+            if ($attempt -ge 3 -or ($status -ge 400 -and $status -lt 500 -and $status -notin 408, 429)) { throw }
             Write-Log "Trying $Url again: $($_.Exception.Message)"
             Start-Sleep -Seconds 3
         }
@@ -95,11 +98,12 @@ function Resolve-Download($Distro) {
         }
         'fedora' {
             # Fedora's own list has beta releases too, whose version isn't a plain number.
+            $variant = if ($Distro.Edition) { $Distro.Edition } else { 'Workstation' }
             $best = @(Invoke-RestMethod -Uri 'https://fedoraproject.org/releases.json' -UseBasicParsing -TimeoutSec 60) |
                 ForEach-Object { $_ } |
-                Where-Object { $_.variant -eq 'Workstation' -and $_.arch -eq 'x86_64' -and $_.version -match '^\d+$' -and $_.link -like '*.iso' } |
+                Where-Object { $_.variant -eq $variant -and $_.arch -eq 'x86_64' -and $_.version -match '^\d+$' -and $_.link -like '*.iso' } |
                 Sort-Object { [int]$_.version } -Descending | Select-Object -First 1
-            if (-not $best) { throw 'Could not find Fedora Workstation in the list on fedoraproject.org.' }
+            if (-not $best) { throw "Could not find Fedora $variant in the list on fedoraproject.org." }
             return New-Download $best.link $best.sha256 ([int64]$best.size)
         }
         'ultramarine' {
@@ -213,6 +217,17 @@ function Test-ServerAnswers([string]$Url) {
     try { [void](Invoke-WebRequest -Uri $Url -Method Head -UseBasicParsing -TimeoutSec 60); $true } catch { $false }
 }
 
+function Test-CurlAvailable {
+    Test-Path (Join-Path $env:SystemRoot 'System32\curl.exe')
+}
+
+function Preserve-Download([string]$Path, [string]$Reason) {
+    if (-not (Test-Path -LiteralPath $Path)) { return }
+    $saved = "$Path.saved-$([DateTime]::UtcNow.ToString('yyyyMMddTHHmmss'))-$([guid]::NewGuid().ToString('N'))"
+    Move-Item -LiteralPath $Path -Destination $saved -ErrorAction Stop
+    Write-Log "$Reason Kept the existing bytes in $saved"
+}
+
 function Invoke-Download($Download, [string]$Path) {
     Set-Stage 1
     $part = "$Path.part"
@@ -226,14 +241,14 @@ function Invoke-Download($Download, [string]$Path) {
     $done = if (Test-Path -LiteralPath $part) { (Get-Item -LiteralPath $part).Length } else { 0 }
     # Bigger than the real file means it came from a different release.
     if ($total -and $done -gt $total) {
-        Remove-Item -LiteralPath $part -Force
+        Preserve-Download $part 'The partial file is larger than this release.'
         $done = 0
     }
     Assert-DownloadRoom $Path $total $done
 
     if ($total -and $done -eq $total) {
         Write-Log 'Download already complete.'
-    } elseif (-not (Test-Path (Join-Path $env:SystemRoot 'System32\curl.exe'))) {
+    } elseif (-not (Test-CurlAvailable)) {
         Set-Status "Downloading $($Download.FileName)..."
         Start-BitsTransfer -Source $Download.Url -Destination $part
     } else {
@@ -242,8 +257,7 @@ function Invoke-Download($Download, [string]$Path) {
         # whole or is from an older link. Start from zero once, but only if the server is
         # answering: 22 is also any HTTP error, and that shouldn't cost gigabytes of progress.
         if ($code -in 22, 33 -and (Test-Path -LiteralPath $part) -and (Test-ServerAnswers $Download.Url)) {
-            Write-Log "The server would not resume the download (curl error $code); starting again."
-            Remove-Item -LiteralPath $part -Force
+            Preserve-Download $part "The server would not resume the download (curl error $code)."
             $code = Invoke-Curl $Download.Url $part $total $Download.FileName
         }
         if ($code -ne 0) { throw (Get-CurlMessage $code) }
@@ -251,7 +265,7 @@ function Invoke-Download($Download, [string]$Path) {
 
     $size = (Get-Item -LiteralPath $part).Length
     if ($total -and $size -ne $total) {
-        Remove-Item -LiteralPath $part -Force
+        Preserve-Download $part 'The downloaded size differs from the publisher size.'
         throw ('The download came out the wrong size ({0:N0} bytes, expected {1:N0}). Click Install to download it again.' -f $size, $total)
     }
     Move-Item -LiteralPath $part -Destination $Path -Force
@@ -263,13 +277,12 @@ function Get-Iso($Download, [string]$Path) {
             Write-Log "Using the copy already in $Path"
             return
         }
-        Write-Log 'The file already downloaded is damaged; downloading it again.'
-        Remove-Item -LiteralPath $Path -Force
+        Preserve-Download $Path 'The existing file does not match this release checksum.'
     }
     Invoke-Download $Download $Path
     if ($Download.Sha256) {
         if (-not (Test-Sha256 $Path $Download.Sha256)) {
-            Remove-Item -LiteralPath $Path -Force
+            Preserve-Download $Path 'The new download does not match the publisher checksum.'
             throw 'The downloaded file is damaged (checksum does not match). Click Install to download it again.'
         }
         Write-Log 'Checksum matches the official one.'
