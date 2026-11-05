@@ -1,0 +1,50 @@
+{
+  "distro": "kubuntu",
+  "release": "26.10",
+  "host_platform": "linux",
+  "incumbent": "Fedora KDE 44",
+  "date": "2026-11-04",
+  "status": "prepared-installer-media-discovery-failed",
+  "kernel_started_from_internal_carrier": true,
+  "live_installer_started": false,
+  "observed_failure": "Casper entered the initramfs shell with: Could not find the ISO /kubuntu-26.10-desktop-amd64.iso. GRUB loaded the kernel/initrd from the internal exFAT carrier, but the live installer did not start. Investigate Casper filesystem scanning and initramfs filesystem support before selecting a repair.",
+  "disposable_vm": "linux-kubuntu",
+  "vm_identity": "eb87c6bb-33aa-4b27-b27c-6a258efe7074",
+  "disk_bytes": 274877906944,
+  "firmware": "x86-64 UEFI, Secure Boot disabled",
+  "attached_installer_iso": false,
+  "iso_sha256": "8160b1d6266dfe1998d183b19713680263c09669f101e0e41cbcf11f50b6f785",
+  "incumbent_sentinel_sha256": "55b7f19a33abb3a3dbe32a89602d91f5119373f2f5a7f8ca9f37d265d3f2c1a2",
+  "incumbent_root_bytes_after_shrink": 23622320128,
+  "incumbent_boot_after_shrink": true,
+  "incumbent_sentinel_after_shrink": "unchanged",
+  "carrier_fstype": "exfat",
+  "carrier_partuuid": "6f6119e0-01f9-4015-aec7-f6f6ed9d0083",
+  "carrier_fs_uuid": "FBFB-D8FA",
+  "owned_efi_sha256": "c717d5527a44591126b83fd961457dabd037c1cf76393f169ba450a26f9be847",
+  "offline_staged_checkpoint": "kubuntu-staged-20261104",
+  "evidence": [
+    "kubuntu-26.10-clone-preparation.json",
+    "kubuntu-26.10-media.json",
+    "kubuntu-26.10-linux-media-transfer.json",
+    "kubuntu-26.10-linux-plan.json",
+    "kubuntu-26.10-linux-shrink.json",
+    "kubuntu-26.10-fedora-after-shrink-reboot.json",
+    "kubuntu-26.10-linux-stage.json",
+    "kubuntu-26.10-linux-boot-scheduled.json",
+    "kubuntu-26.10-linux-before-installer-boot.json",
+    "kubuntu-26.10-casper-media-not-found.png"
+  ],
+  "pending": [
+    "Resolve Casper ISO discovery on the large-file carrier, then boot the actual live installer. Preserve the failed case; do not repeat completed shrink/staging or reset markers.",
+    "Install into the planned free region and boot installed Kubuntu.",
+    "Boot the incumbent Fedora, compare its sentinel and persistent partition identities.",
+    "Restore boot priority, perform real ownership-checked firmware/carrier cleanup, then boot both systems and recheck data."
+  ],
+  "limits": [
+    "Only the separate clone was provisioned for this Linux-hosted case. The original Windows/Fedora preservation VM remains unchanged.",
+    "The clone's Windows and WinRE partitions were intentionally replaced during test setup, before defining Fedora as the incumbent.",
+    "The original ISO is retained under source-media so Casper cannot accidentally select the ext4 source copy instead of the exFAT carrier.",
+    "No installed-Kubuntu, Secure Boot, encryption, second-disk or power-loss recovery claim."
+  ]
+}

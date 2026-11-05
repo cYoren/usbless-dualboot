@@ -1643,11 +1643,13 @@
           "validation": "unvalidated"
         },
         "linux": {
-          "implementation": "planned",
-          "validation": "unvalidated"
+          "implementation": "implemented",
+          "validation": "prepared"
         }
       },
-      "evidence": []
+      "evidence": [
+        "docs/validation/kubuntu-26.10-linux-preservation.json"
+      ]
     },
     {
       "id": "fedora-kde",

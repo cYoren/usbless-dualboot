@@ -5,6 +5,27 @@ Read this file before repeating any tests, downloads, builds or VM installation.
 
 ## Resumed work: 2026-11-04 (latest)
 
+- **WRAP-UP CHECKPOINT, user requested stopping due to token limits:** the real
+  internal boot test reached Kubuntu's kernel/Casper initramfs, but NOT the live
+  installer. Error: `Could not find the ISO /kubuntu-26.10-desktop-amd64.iso`.
+  GRUB read the kernel/initrd from the exFAT carrier; Casper's ISO discovery failed.
+  Cause is not yet established: inspect its scan logic and exFAT support in the
+  initramfs before choosing a fix. Do not claim installer boot/install success.
+  Screenshot: `validation/kubuntu-26.10-casper-media-not-found.png`; case ledger:
+  `validation/kubuntu-26.10-linux-preservation.json`.
+- Stop scope is preserving this incomplete result in draft PR #5. No merge,
+  release, VM/media cleanup or acceptance sign-off. Both VM disk files and the
+  original user's Windows ISO must remain preserved. A guest `sync; poweroff -f`
+  was requested from the BusyBox initramfs shell (not a forced QEMU termination);
+  shutdown was confirmed: BOTH `windows-base` and `linux-kubuntu` are STOPPED.
+  The typing controller reported a missing monitor socket during final key-up
+  because the guest had already powered off. Do not repeat the poweroff command.
+- **Resume next:** verify the clone is stopped; retain the failed boot and offline
+  staged checkpoint. Review the actual Casper initramfs ISO-discovery behavior.
+  Repair only through an explicit ownership-checked recovery path or an isolated
+  fresh case; never clear stage/shrink markers to rerun destructive operations.
+  Reuse all completed storage preparation and official media evidence below.
+
 - Draft PR #5 preserves the prior work remotely:
   https://github.com/cYoren/usbless-dualboot/pull/5 . Continue on its existing
   `wip/dualboot-validation-checkpoint-20261103` branch; do not merge it yet.
@@ -59,11 +80,27 @@ Read this file before repeating any tests, downloads, builds or VM installation.
   The working server is now port **8768**; engine archives/hashes refresh from
   current source on each request. The running guest agent supports authenticated
   normal reboot/shutdown. Original port-8766/8767 servers may still be alive.
-- Next: finish the requested normal reboot, verify Fedora's root and sentinel, stage
-  the 12 GiB exFAT carrier, then boot the internal installer without attaching an
-  ISO. The fixed driver has separate reviewed actions for these phases; a new
-  phase is never an excuse to clear an interrupted marker. No Kubuntu installer
-  boot/installation evidence has been claimed yet.
+- Fedora's post-shrink reboot was verified: root partition exactly 22 GiB and
+  sentinel unchanged. Linux staging succeeded: carrier `/dev/sda6`, PARTUUID
+  `6f6119e0-01f9-4015-aec7-f6f6ed9d0083`, exFAT UUID `FBFB-D8FA`, sectors
+  511703040..536870878. Owned EFI SHA-256 is
+  `c717d5527a44591126b83fd961457dabd037c1cf76393f169ba450a26f9be847`.
+  See `validation/kubuntu-26.10-linux-stage.json` and
+  `validation/kubuntu-26.10-fedora-after-shrink-reboot.json`.
+- The clone then shut down normally via the authenticated agent. An OFFLINE
+  internal qcow2 checkpoint `kubuntu-staged-20261104` and matching firmware
+  `.lab/vms/linux-kubuntu/OVMF_VARS.kubuntu-staged.fd` were created and confirmed.
+  This is reusable staged media, not installer boot/install evidence.
+- Commit `f41960e` and the updated draft PR #5 already preserve today's progress
+  through the successful shrink remotely. Staging and subsequent evidence will
+  follow in another preservation commit. The original VM remains stopped.
+- The real Linux engine's `boot --installer` succeeded. Read-back confirmed
+  BootNext **0003**, exact `Linux Installer` title, original ESP GUID and owned
+  `\EFI\usbless\grubx64.efi` path. The normal reboot into this entry was requested.
+  Evidence: `validation/kubuntu-26.10-linux-{boot-scheduled,before-installer-boot}.json`.
+- Next: observe the internal installer without any attached ISO. Never repeat
+  shrink/stage or clear completion markers. No Kubuntu installer boot/installation
+  evidence has been claimed yet.
 
   Lab driver note: after staging succeeds, it moves the intact source ISO to
   `/mnt/usbdb-lab-media/source-media/` without changing the saved plan. Casper's

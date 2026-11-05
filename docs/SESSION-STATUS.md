@@ -1,4 +1,25 @@
-# Active development status: 2026-11-03
+# Active development status: 2026-11-05
+
+## Latest preserved checkpoint (takes precedence over historical results below)
+
+The user requested stopping with the work preserved in draft PR #5. Both VMs are
+confirmed stopped; the private payload servers and their TPM helpers were stopped.
+All VM disks, staged snapshots, verified media and earlier test evidence are retained.
+Resume from `docs/HANDOFF.md`; do not repeat completed shrink/stage operations.
+
+Kubuntu 26.10's signed official 5.1 GB media, guest copy, real Linux plan, Fedora
+Btrfs shrink to 22 GiB, post-shrink Fedora boot/sentinel check, exFAT staging and
+BootNext selection passed. The internal loader started the kernel, but Casper
+could not find the ISO and entered its initramfs shell. The live installer did
+not start. The failure screenshot and evidence are in
+`docs/validation/kubuntu-26.10-linux-preservation.json` and its linked artifacts.
+
+Seven acceptance areas remain: complete the Kubuntu install/preservation/cleanup
+case; installed-system ext4 shrink and boot; remaining baseline distro coverage;
+Secure Boot; Windows encryption; a second disk; and failure/recovery dimensions.
+Final review follows those validations. PR #5 must remain a draft.
+
+## Historical status (2026-11-03)
 
 Recovered from session `01a19830-f7e2-7cb0-9bf5-22cf65e5d237` after its usage limit
 interrupted the requested wrap-up. This is a source checkpoint, not a validated release.
