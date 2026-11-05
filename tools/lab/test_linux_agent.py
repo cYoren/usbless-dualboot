@@ -72,5 +72,27 @@ class SeedMountSafetyTests(unittest.TestCase):
         self.read_seed()
 
 
+class CloneIdentityTests(unittest.TestCase):
+    identity = 'eb87c6bb-33aa-4b27-b27c-6a258efe7074'
+
+    def test_designated_clone_matches_actual_guest(self):
+        with patch.object(Path, 'read_text', return_value=self.identity):
+            agent.assert_clone({'vm_role': 'linux-validation', 'vm_identity': self.identity})
+
+    def test_original_vm_is_always_refused(self):
+        with self.assertRaisesRegex(ValueError, 'original preservation VM'):
+            agent.assert_clone({'vm_role': 'linux-validation',
+                                'vm_identity': '23f093f6-8fb4-42cc-bd37-068295d8c8ae'})
+
+    def test_request_for_another_clone_is_refused(self):
+        with patch.object(Path, 'read_text', return_value='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'):
+            with self.assertRaisesRegex(ValueError, 'actual guest'):
+                agent.assert_clone({'vm_role': 'linux-validation', 'vm_identity': self.identity})
+
+    def test_missing_clone_role_is_refused(self):
+        with self.assertRaisesRegex(ValueError, 'designated Linux validation clone'):
+            agent.assert_clone({'vm_identity': self.identity})
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -134,10 +134,28 @@ need_cmd efibootmgr; need_cmd blkid
 assert_esp_mounted
 sb_state=$(bash "$HERE/probe.sh" --json | jq -r .secure_boot)
 [[ $sb_state == disabled ]] || die "Linux beta requires Secure Boot disabled; current state: $sb_state"
-pkg_install grub 2>/dev/null || pkg_install grub-efi-amd64-bin
-need_cmd grub-mkstandalone
-if [[ $carrier_fs == exfat ]]; then pkg_install exfatprogs; need_cmd mkfs.exfat
+# Fedora names the installed tool grub2-mkstandalone. Reuse an available tool
+# before attempting package installation, including on offline systems.
+if ! command -v grub-mkstandalone >/dev/null && ! command -v grub2-mkstandalone >/dev/null; then
+  case "$(pkg_mgr)" in
+    dnf) pkg_install grub2-tools-extra grub2-efi-x64-modules ;;
+    apt-get) pkg_install grub-efi-amd64-bin ;;
+    *) pkg_install grub ;;
+  esac
+fi
+GRUB_STANDALONE=$(command -v grub-mkstandalone || command -v grub2-mkstandalone) || die "a GRUB standalone builder is required"
+if [[ $carrier_fs == exfat ]]; then
+  command -v mkfs.exfat >/dev/null || pkg_install exfatprogs
+  need_cmd mkfs.exfat
 else need_cmd mkfs.fat; fi
+[[ ! -e $ESP_MOUNT/EFI/usbless && ! -L $ESP_MOUNT/EFI/usbless ]] || die "EFI/usbless already exists; refusing to overwrite unowned boot files"
+# Validate the actual target modules and build the EFI before partition writes.
+# Missing GRUB modules must not leave a half-created carrier behind.
+GRUB_EFI=$(mktemp --suffix=.efi)
+"$GRUB_STANDALONE" -O x86_64-efi -o "$GRUB_EFI" \
+  --modules="part_gpt part_msdos fat exfat ntfs loopback linux normal search search_label search_fs_uuid configfile iso9660" \
+  "boot/grub/grub.cfg=$GRUB_CFG"
+[[ -s $GRUB_EFI ]] || die "GRUB standalone builder produced an empty EFI"
 inst_partnum=$(next_partition_number "$DISK")
 CARRIER=$(partition_path "$DISK" "$inst_partnum")
 phase_begin stage
@@ -170,11 +188,7 @@ sync
 umount "$CARRIER_MNT"; rmdir "$CARRIER_MNT"
 trap - EXIT
 
-log "Building a standalone GRUB EFI..."
-GRUB_EFI=$(mktemp --suffix=.efi)
-grub-mkstandalone -O x86_64-efi -o "$GRUB_EFI" \
-  --modules="part_gpt part_msdos fat exfat ntfs loopback linux normal search search_label search_fs_uuid configfile iso9660" \
-  "boot/grub/grub.cfg=$GRUB_CFG"
+log "Installing the verified standalone GRUB EFI..."
 install -D -m 0644 "$GRUB_EFI" "$ESP_MOUNT/EFI/usbless/grubx64.efi"
 rm -f "$GRUB_EFI" "$GRUB_CFG"
 

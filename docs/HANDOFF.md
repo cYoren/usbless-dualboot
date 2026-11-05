@@ -3,7 +3,76 @@
 This is an active-work handoff requested by the user, not a finished release or wrap-up.
 Read this file before repeating any tests, downloads, builds or VM installation.
 
-## End-of-day preservation: 2026-11-03
+## Resumed work: 2026-11-04 (latest)
+
+- Draft PR #5 preserves the prior work remotely:
+  https://github.com/cYoren/usbless-dualboot/pull/5 . Continue on its existing
+  `wip/dualboot-validation-checkpoint-20261103` branch; do not merge it yet.
+- The original `windows-base` VM is stopped. Do not restart it while preparing
+  the new Linux-hosted case. Its completed Fedora/Windows proof remains intact.
+- `clone_checkpoint.py` passed three focused refusal tests and actually cloned
+  the saved `fedora-kde-preserved-20261103` checkpoint and matching firmware to
+  `linux-kubuntu`, with a separate sparse 256 GiB disk. Clone UUID / SMBIOS serial:
+  `eb87c6bb-33aa-4b27-b27c-6a258efe7074`. The clone booted Fedora successfully.
+- Clone provisioning is complete, with GPT backups saved inside the guest under
+  `/var/lib/USBlessLab/kubuntu`. ONLY IN THIS CLONE, Windows C: and WinRE were
+  replaced with a 24 GiB ext4 lab-media partition. This case now measures Fedora
+  preservation, not Windows preservation. Fedora's sentinel remains
+  `55b7f19a33abb3a3dbe32a89602d91f5119373f2f5a7f8ca9f37d265d3f2c1a2`.
+  Evidence: `validation/kubuntu-26.10-clone-preparation.json`.
+- Media mount: `/mnt/usbdb-lab-media`, ext4 UUID
+  `8f892c7d-7c9c-4568-af97-4167407a3c06`, PARTUUID
+  `b19423ff-3214-40ac-968e-a3c9cb776d00`. A guest fstab entry preserves the mount.
+- New `linux-kubuntu` agent action runs a fixed, checksum-pinned lab driver.
+  Both the caller's requested VM identity and the actual SMBIOS serial must match;
+  the original VM is explicitly refused. Four focused identity tests passed.
+- Kubuntu 26.10 official media is 5,141,966,848 bytes, SHA-256
+  `8160b1d6266dfe1998d183b19713680263c09669f101e0e41cbcf11f50b6f785`.
+  Official `SHA256SUMS.gpg` was verified with Ubuntu's documented image key
+  `843938DF228D22F7B3742BC0D94AA3F0EFE21092`; cached verification files and log
+  are in `.lab/cache/kubuntu-verification/`. The ISO download is now COMPLETE;
+  all 109 disjoint ranges finished without errors and the assembled file matched
+  the official SHA-256. Keep the retained prefix/ranges; do not download again.
+  Slow single-stream transfer was stopped; `complete_kubuntu_download.py` reuses
+  the saved 1,507,721,216-byte prefix and fetches disjoint resumable ranges.
+  Do not run another writer on that ISO. Its ranges and manifest are retained in
+  `.lab/cache/kubuntu-26.10-desktop-amd64.iso.ranges/`. Only a full matching hash
+  completes it. Never stage the incomplete file.
+- Fedora's installed standalone builder is `/usr/bin/grub2-mkstandalone`; its
+  exFAT EFI module and `mkfs.exfat` are present. Linux staging now supports this
+  executable name, reuses installed dependencies, rejects an existing unowned
+  `EFI/usbless` directory, and builds the EFI BEFORE carrier partition writes.
+  All 64 Bash regression checks passed after this relevant engine change.
+- Private payload server now uses port **8767** with the verified Kubuntu ISO route.
+  The old port-8766 process was not stopped because automatic permission review
+  timed out; a fresh port avoided that interruption. Restart the new server after
+  source changes (and with `--kubuntu-iso .lab/cache/kubuntu-26.10-desktop-amd64.iso`
+  only after the ISO is complete). Guest bootstrap URL:
+  `http://10.0.2.2:8767/linux.sh`. New authenticated Linux shutdown/reboot actions
+  are implemented in source; refresh the guest agent before relying on them.
+- The media transfer into the clone also matched the official hash. Real Linux
+  `plan --add linux` succeeded and was reviewed: Fedora root 23 -> 22 GiB, target
+  sectors 264704000..511703039 (~118 GiB), installer 511703040..536870878 (~12 GiB).
+  The Btrfs shrink succeeded with completion marker and backup directory
+  `/var/lib/USBlessLab/kubuntu/engine/backups/shrink.m2jTZt`; never repeat it.
+  See `validation/kubuntu-26.10-linux-{media-transfer,plan,shrink}.json`.
+  The working server is now port **8768**; engine archives/hashes refresh from
+  current source on each request. The running guest agent supports authenticated
+  normal reboot/shutdown. Original port-8766/8767 servers may still be alive.
+- Next: finish the requested normal reboot, verify Fedora's root and sentinel, stage
+  the 12 GiB exFAT carrier, then boot the internal installer without attaching an
+  ISO. The fixed driver has separate reviewed actions for these phases; a new
+  phase is never an excuse to clear an interrupted marker. No Kubuntu installer
+  boot/installation evidence has been claimed yet.
+
+  Lab driver note: after staging succeeds, it moves the intact source ISO to
+  `/mnt/usbdb-lab-media/source-media/` without changing the saved plan. Casper's
+  `iso-scan/filename` must find only the exFAT carrier's root-level copy, not the
+  ext4 lab-media source copy. This deliberately tests the actual large-file carrier.
+  Boot and cleanup do not read the original source ISO after staging. For a later
+  NEW plan, use the relocated source path; never reset this plan's completed phases.
+
+## End-of-day preservation: 2026-11-03 (historical)
 
 The user requested a remote branch and draft PR to preserve this unfinished work,
 overriding the earlier restriction on pushing only after all validation is complete.

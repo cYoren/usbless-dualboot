@@ -12,7 +12,7 @@ def main():
     root=Path(__file__).resolve().parents[2]
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('name')
-    parser.add_argument('action',choices=['status','inspect','tests','ui','shutdown','reboot','boot-windows','test-ext4','test-cleanup','plan-kde','prepare-kde','cleanup-kde'])
+    parser.add_argument('action',choices=['status','inspect','tests','ui','shutdown','reboot','boot-windows','test-ext4','test-cleanup','linux-kubuntu','plan-kde','prepare-kde','cleanup-kde'])
     parser.add_argument('--seed',type=Path,default=root/'.lab/seeds/windows-base')
     parser.add_argument('--timeout',type=int,default=120)
     parser.add_argument('--media-port',type=int,default=8765)
@@ -20,6 +20,7 @@ def main():
     parser.add_argument('--plan-id')
     parser.add_argument('--source-sha256')
     parser.add_argument('--encrypted',action='store_true')
+    parser.add_argument('--lab-step',choices=['prepare','fetch','plan','shrink','stage','boot-installer','restore','cleanup-preview','cleanup'])
     args=parser.parse_args()
     folder=directory(args.name,root/'.lab')
     config=json.loads((folder/'vm.json').read_text())
@@ -31,7 +32,9 @@ def main():
     with socket.create_connection(('127.0.0.1',int(config['agent_port'])),timeout=args.timeout) as connection:
         connection.sendall((json.dumps({'action':args.action,'token':token,'media_port':args.media_port,
                                        'sentinel':args.sentinel,'plan_id':args.plan_id,
-                                       'source_sha256':args.source_sha256,'encrypted':args.encrypted})+'\n').encode())
+                                       'source_sha256':args.source_sha256,'encrypted':args.encrypted,
+                                       'lab_step':args.lab_step,'vm_identity':config.get('uuid'),
+                                       'vm_role':config.get('role')})+'\n').encode())
         stream=connection.makefile('rb')
         response=json.loads(stream.readline())
     print(json.dumps(response,indent=2))

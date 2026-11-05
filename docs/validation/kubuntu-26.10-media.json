@@ -1,0 +1,23 @@
+{
+  "distro": "kubuntu",
+  "release": "26.10",
+  "architecture": "amd64",
+  "status": "official-media-verified",
+  "date": "2026-11-04",
+  "filename": "kubuntu-26.10-desktop-amd64.iso",
+  "bytes": 5141966848,
+  "sha256": "8160b1d6266dfe1998d183b19713680263c09669f101e0e41cbcf11f50b6f785",
+  "iso_source": "https://cdimage.ubuntu.com/kubuntu/releases/26.10/release/kubuntu-26.10-desktop-amd64.iso",
+  "checksum_source": "https://cdimages.ubuntu.com/kubuntu/releases/26.10/release/SHA256SUMS",
+  "signature_source": "https://cdimages.ubuntu.com/kubuntu/releases/26.10/release/SHA256SUMS.gpg",
+  "signature_verified": true,
+  "signing_key_fingerprint": "843938DF228D22F7B3742BC0D94AA3F0EFE21092",
+  "fingerprint_reference": "https://documentation.ubuntu.com/security/software-integrity/image-verification/",
+  "large_file_case": "The complete ISO exceeds FAT32's maximum file size. Intended Linux carrier: exFAT.",
+  "installation_claim": false,
+  "notes": [
+    "The slow initial transfer was preserved as a prefix; remaining disjoint ranges were cached and assembled.",
+    "All 109 range transfers completed without errors; full assembled-file SHA-256 matched the signed official checksum.",
+    "Media authenticity does not establish preparation, boot, installation or preservation evidence."
+  ]
+}

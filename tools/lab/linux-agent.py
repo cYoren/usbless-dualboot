@@ -12,6 +12,8 @@ import tempfile
 import io
 import tarfile
 import urllib.request
+import sys
+import uuid
 
 
 def run(*args):
@@ -89,7 +91,19 @@ def windows_entry():
     return matches[0]
 
 
+def assert_clone(request):
+    identity = request.get('vm_identity', '')
+    if request.get('vm_role') != 'linux-validation' or not isinstance(identity, str):
+        raise ValueError('A designated Linux validation clone is required')
+    if str(uuid.UUID(identity)) != identity or identity == '23f093f6-8fb4-42cc-bd37-068295d8c8ae':
+        raise ValueError('The original preservation VM must never be prepared as a clone')
+    if Path('/sys/class/dmi/id/product_serial').read_text().strip() != identity:
+        raise ValueError('Requested clone identity does not match the actual guest')
+
+
 def test_ext4(request):
+    if request.get('action') == 'linux-kubuntu':
+        assert_clone(request)
     expected = request.get('source_sha256', '')
     port = request.get('media_port', 8765)
     if not isinstance(expected, str) or not re.fullmatch('[a-fA-F0-9]{64}', expected):
@@ -104,7 +118,7 @@ def test_ext4(request):
     with tarfile.open(fileobj=io.BytesIO(source), mode='r:') as archive:
         for member in archive.getmembers():
             path = Path(member.name)
-            allowed = (member.name in ['bin/usbless-dualboot', 'tools/lab/case-linux-ext4.sh', 'tools/lab/case-linux-cleanup.sh'] or
+            allowed = (member.name in ['bin/usbless-dualboot', 'tools/lab/case-linux-ext4.sh', 'tools/lab/case-linux-cleanup.sh', 'tools/lab/case-linux-kubuntu.py'] or
                        (path.parent == Path('lib') and path.suffix == '.sh'))
             if not member.isfile() or not allowed or path.is_absolute() or '..' in path.parts:
                 raise ValueError('Unexpected member in engine archive')
@@ -112,6 +126,12 @@ def test_ext4(request):
     # Never time out/kill a filesystem operation. A caller timeout retains its state/logs.
     fixture = 'case-linux-cleanup.sh' if request.get('action') == 'test-cleanup' else 'case-linux-ext4.sh'
     args = ['bash', str(destination / 'tools/lab' / fixture)]
+    if request.get('action') == 'linux-kubuntu':
+        step = request.get('lab_step')
+        if step not in ['prepare', 'fetch', 'plan', 'shrink', 'stage', 'boot-installer', 'restore', 'cleanup-preview', 'cleanup']:
+            raise ValueError('Unknown Kubuntu lab step')
+        args = [sys.executable, str(destination / 'tools/lab/case-linux-kubuntu.py'),
+                step, '--vm-identity', request['vm_identity'], '--media-port', str(port)]
     if fixture == 'case-linux-ext4.sh' and request.get('encrypted') is True:
         args.append('--luks')
     result = subprocess.run(args,
@@ -139,6 +159,7 @@ def main():
             while True:
                 connection, peer = server.accept()
                 reboot = False
+                poweroff = False
                 with connection:
                     connection.settimeout(30)
                     try:
@@ -154,13 +175,17 @@ def main():
                         assert_lab()
                         if request.get('action') in ['status', 'inspect']:
                             response = inspect()
-                        elif request.get('action') in ['test-ext4', 'test-cleanup']:
+                        elif request.get('action') in ['test-ext4', 'test-cleanup', 'linux-kubuntu']:
                             response = test_ext4(request)
                         elif request.get('action') == 'boot-windows':
                             entry = windows_entry()
                             run('efibootmgr', '-n', entry)
                             response = dict(ok=True, action='boot-windows', boot_next=entry)
                             reboot = True
+                        elif request.get('action') in ['shutdown', 'reboot']:
+                            response = dict(ok=True, action=request['action'])
+                            poweroff = request['action'] == 'shutdown'
+                            reboot = not poweroff
                         else:
                             raise ValueError('Unknown lab action')
                     except (OSError, ValueError, subprocess.SubprocessError, KeyError) as error:
@@ -168,6 +193,9 @@ def main():
                     connection.sendall((json.dumps(response) + '\n').encode())
                 if reboot:
                     run('systemctl', 'reboot')
+                    break
+                if poweroff:
+                    run('systemctl', 'poweroff')
                     break
     finally:
         if firewall:

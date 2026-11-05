@@ -7,6 +7,7 @@ from pathlib import Path
 import shutil
 import io
 import tarfile
+import re
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -15,6 +16,7 @@ def engine_bundle():
     output = io.BytesIO()
     paths = [REPO / 'bin/usbless-dualboot', REPO / 'tools/lab/case-linux-ext4.sh',
              REPO / 'tools/lab/case-linux-cleanup.sh',
+             REPO / 'tools/lab/case-linux-kubuntu.py',
              *sorted((REPO / 'lib').glob('*.sh'))]
     with tarfile.open(fileobj=output, mode='w') as archive:
         for file in paths:
@@ -62,6 +64,7 @@ def update_script(files, port):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--port', type=int, default=8765)
+    parser.add_argument('--kubuntu-iso', type=Path)
     args = parser.parse_args()
     if not 1024 <= args.port <= 65535:
         parser.error('Use an unprivileged TCP port')
@@ -72,6 +75,15 @@ def main():
         if not file.is_file():
             raise ValueError('Build the payload first; a required update file is missing')
     script = update_script(files, args.port)
+    if args.kubuntu_iso:
+        iso = args.kubuntu_iso.resolve(strict=True)
+        if not iso.is_file() or iso.suffix != '.iso' or iso.stat().st_size != 5141966848:
+            raise ValueError('Expected the official Kubuntu 26.10 ISO regular file')
+        with iso.open('rb') as source:
+            digest = hashlib.file_digest(source, 'sha256').hexdigest()
+        if digest != '8160b1d6266dfe1998d183b19713680263c09669f101e0e41cbcf11f50b6f785':
+            raise ValueError('Kubuntu ISO differs from the official checksum')
+        files['/kubuntu.iso'] = iso
     # Linux inspection is downloaded separately and never receives the Windows seed.
     files['/linux-agent.py'] = REPO / 'tools/lab/linux-agent.py'
     with files['/linux-agent.py'].open('rb') as source:
@@ -87,19 +99,47 @@ def main():
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
             if self.path in ['/resume.ps1', '/linux.sh', '/engine.tar', '/engine.sha256']:
+                # Development steps pin the CURRENT source, not a stale startup
+                # bundle. If source changes between hash and archive requests,
+                # the guest's checksum guard rejects it before running anything.
+                current_engine = engine_bundle() if self.path.startswith('/engine.') else engine
                 data = {'/resume.ps1': script, '/linux.sh': linux_script,
-                        '/engine.tar': engine, '/engine.sha256': engine_hash}[self.path]
+                        '/engine.tar': current_engine,
+                        '/engine.sha256': hashlib.sha256(current_engine).hexdigest().encode()}[self.path]
                 self.send_response(200)
                 self.send_header('Content-Length', str(len(data)))
                 self.end_headers()
                 self.wfile.write(data)
             elif self.path in files:
                 file = files[self.path]
-                self.send_response(200)
-                self.send_header('Content-Length', str(file.stat().st_size))
+                size = file.stat().st_size
+                start, end = 0, size - 1
+                requested = self.headers.get('Range')
+                if requested:
+                    match = re.fullmatch(r'bytes=(\d+)-(\d*)', requested)
+                    if not match:
+                        self.send_error(416)
+                        return
+                    start = int(match[1])
+                    end = min(int(match[2]) if match[2] else end, end)
+                    if not 0 <= start <= end:
+                        self.send_error(416)
+                        return
+                self.send_response(206 if requested else 200)
+                self.send_header('Content-Length', str(end - start + 1))
+                self.send_header('Accept-Ranges', 'bytes')
+                if requested:
+                    self.send_header('Content-Range', f'bytes {start}-{end}/{size}')
                 self.end_headers()
                 with file.open('rb') as source:
-                    shutil.copyfileobj(source, self.wfile)
+                    source.seek(start)
+                    remaining = end - start + 1
+                    while remaining:
+                        block = source.read(min(1024 * 1024, remaining))
+                        if not block:
+                            raise OSError('Served file changed during transfer')
+                        self.wfile.write(block)
+                        remaining -= len(block)
             else:
                 self.send_error(404)
 
