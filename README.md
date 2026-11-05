@@ -1,5 +1,7 @@
 # usbless-dualboot
 
+> **Experimental development build.** Coverage is incomplete; this is not a production-ready installer or a claim that every catalog entry works. The recorded Windows/Fedora preservation case passed. Kubuntu's large-ISO Linux boot reaches its live environment through an owned NTFS carrier, but its tested live shutdown stalled with ISO-loop write errors. Full installation, clean shutdown, installed ext4 shrink/boot and the remaining firmware, encryption, second-disk and recovery matrix are pending. See [coverage](docs/COVERAGE.md) and [current status](docs/SESSION-STATUS.md).
+
 <p align="center"><img src="docs/screenshots/desktop.png" alt="The native USBless Dualboot app showing its raccoon mascot, storage overview and readiness checklist with sample data" width="1100"></p>
 
 [![CI](https://github.com/cYoren/usbless-dualboot/actions/workflows/ci.yml/badge.svg)](https://github.com/cYoren/usbless-dualboot/actions/workflows/ci.yml)
@@ -107,6 +109,7 @@ sudo ./bin/usbless-dualboot secureboot --verify
 | `stage` | Create the FAT32 installer partition, copy the ISO, split `install.wim`. |
 | `boot` | Register a one-time UEFI entry; restore the default boot order later. |
 | `cleanup` | Preview or remove only an owned installer after both systems boot; keeps recovery metadata. |
+| `repair-carrier` | Review and explicitly rebuild a completed owned exFAT Linux ISO carrier as NTFS; preserves OS storage, EFI and the existing plan. See [recovery](docs/RECOVERY.md). |
 | `windows` | Add/remove a Windows entry in the boot menu. |
 | `secureboot` | `--prep` / `--enroll` / `--verify`: sign the Linux boot chain (sbctl) and enroll keys. |
 

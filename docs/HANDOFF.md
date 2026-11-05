@@ -3,7 +3,67 @@
 This is an active-work handoff requested by the user, not a finished release or wrap-up.
 Read this file before repeating any tests, downloads, builds or VM installation.
 
-## Resumed work: 2026-11-04 (latest)
+## Resumed work: 2026-11-05 (latest)
+
+- Requested scope is now an expedited development merge into the open-source
+  repository, with experimental coverage and known limitations documented. This
+  does not assert acceptance-matrix completion. Do not release or remove media.
+- Live evidence CONFIRMED `/dev/loop0` backs the Kubuntu ISO on major:minor **8:6**,
+  which matches the owned NTFS carrier GUID/UUID. `/isodevice` was not visible to
+  findmnt in the inspector namespace; the new inspector records loop backing
+  major:minor instead of assuming a visible mount. Evidence:
+  `validation/kubuntu-26.10-ntfs-live-inspection.json` and welcome screenshot.
+- This revealed a necessary ownership guard: a detached mount can still back a
+  live ISO loop. Cleanup/repair now reject active loop references to the carrier.
+  Final `make test` passed lint, smoke, 64 regressions, 10 carrier compatibility/
+  loop-reference checks and UI-helper checks after that guard was added.
+- **NEW KNOWN LIMITATION:** live `systemctl poweroff` stalled with repeated loop0
+  sector-0 WRITE I/O errors. Do not claim clean shutdown or installed-Kubuntu
+  preservation. Screenshot: `validation/kubuntu-26.10-live-shutdown-io-errors.png`.
+  The clone was paused and QEMU stopped after the failed normal shutdown, retaining
+  its disk/firmware checkpoint `ntfs-live-shutdown-failed-20261105` and
+  `OVMF_VARS.ntfs-live-shutdown-failed.fd`. Original VM and staged checkpoint remain.
+  Resume with read-only integrity/diagnostic checks; never reset completed markers.
+
+- User resumed work. Only `linux-kubuntu` was started; the original VM stays off.
+- Casper's failure cause is now CONFIRMED from the cached official ISO's actual
+  initramfs: `is_supported_fs` excludes exFAT and accepts NTFS. `20iso_scan` calls
+  that filtered search and emits the exact observed error. The initramfs includes
+  `ntfs-3g`. Evidence: `validation/kubuntu-26.10-casper-root-cause.json`.
+  No additional ISO download or host mount was needed.
+- Source now selects NTFS for large Casper ISOs (small ISO FAT32 and other reviewed
+  large-family exFAT behavior stay explicit). Six compatibility cases and all 64
+  Bash regressions passed after the relevant engine change.
+- New explicit `repair-carrier --iso <verified-relocated-source> --dry-run` and
+  `--confirm-rebuild-installer` migrate only a completed OWNED exFAT carrier to NTFS.
+  It checks identity, geometry, source hash, original carrier content, EFI hash,
+  absence of BootNext, foreign files, mounts and holders; preserves GPT, EFI and
+  phase completion markers; stores backups and a repair interruption marker.
+  The new `test-repair` loop-image fixture PASSED, including foreign files,
+  mount, wrong ISO, BootNext, confirmation and repeat refusals, plus unchanged
+  GPT/root data/EFI/firmware and refreshed NTFS ownership. Evidence:
+  `validation/linux-carrier-repair-ntfs.json`.
+  Real clone repair also PASSED: `validation/kubuntu-26.10-ntfs-repair.json`.
+  Carrier PARTUUID/range is unchanged; NTFS UUID is `29EED3E9100BA43B`.
+  Backup: `/var/lib/USBlessLab/kubuntu/engine/backups/repair.qhTLCD`.
+  Shrink/stage/repair completion markers are all 1, pending phase empty.
+- Port 8768 currently serves updated nonsecret agent/source files. The new guest
+  agent adds the fixed `test-repair` action and `repair-preview`/`repair` clone steps.
+  Port **8769** additionally serves the newer agent with `inspect-live` and a
+  missing-firewalld guard for Ubuntu. Use its `/linux.sh` in Kubuntu's live session
+  to collect real `/isodevice` and loop backing-file evidence. The installed-Fedora
+  refusal test for `inspect-live` passed. Do not repeat shrink, stage or repair.
+- Next: schedule installer boot with the existing agent, reboot normally, and
+  capture Kubuntu live evidence with the newer agent. After successful engine
+  recovery, expose/document its UI/agent workflow before final acceptance.
+- NTFS boot has now reached the REAL Kubuntu welcome screen (Try/Install,
+  Ethernet connected). Screenshot: `validation/kubuntu-26.10-ntfs-live-welcome.png`.
+  "Try Kubuntu" was selected to inspect the live carrier before installation.
+  Next run the newer inspector from port 8769, call `inspect-live`, and assert
+  `/isodevice` maps to the owned NTFS GUID/UUID and ISO loop backing file.
+  No installed-Kubuntu or cleanup success has been claimed yet.
+
+## Previous stopping checkpoint: 2026-11-04
 
 - **WRAP-UP CHECKPOINT, user requested stopping due to token limits:** the real
   internal boot test reached Kubuntu's kernel/Casper initramfs, but NOT the live

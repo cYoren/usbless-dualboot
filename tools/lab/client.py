@@ -12,7 +12,7 @@ def main():
     root=Path(__file__).resolve().parents[2]
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('name')
-    parser.add_argument('action',choices=['status','inspect','tests','ui','shutdown','reboot','boot-windows','test-ext4','test-cleanup','linux-kubuntu','plan-kde','prepare-kde','cleanup-kde'])
+    parser.add_argument('action',choices=['status','inspect','inspect-live','tests','ui','shutdown','reboot','boot-windows','test-ext4','test-cleanup','test-repair','linux-kubuntu','plan-kde','prepare-kde','cleanup-kde'])
     parser.add_argument('--seed',type=Path,default=root/'.lab/seeds/windows-base')
     parser.add_argument('--timeout',type=int,default=120)
     parser.add_argument('--media-port',type=int,default=8765)
@@ -20,7 +20,7 @@ def main():
     parser.add_argument('--plan-id')
     parser.add_argument('--source-sha256')
     parser.add_argument('--encrypted',action='store_true')
-    parser.add_argument('--lab-step',choices=['prepare','fetch','plan','shrink','stage','boot-installer','restore','cleanup-preview','cleanup'])
+    parser.add_argument('--lab-step',choices=['prepare','fetch','plan','shrink','stage','boot-installer','restore','cleanup-preview','cleanup','repair-preview','repair'])
     args=parser.parse_args()
     folder=directory(args.name,root/'.lab')
     config=json.loads((folder/'vm.json').read_text())

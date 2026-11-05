@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 # Shared installer ownership records. Source after common.sh.
 
+assert_no_carrier_loops() {
+  local identity=$1 loops
+  need_cmd losetup
+  loops=$(losetup --list --json --output NAME,BACK-MAJ:MIN) || die "could not inspect active loop backing devices"
+  jq -e '.loopdevices | type == "array"' <<< "$loops" >/dev/null || die "could not inspect loop backing metadata"
+  if jq -e --arg id "$identity" 'any(.loopdevices[]; .["back-maj:min"] == $id)' <<< "$loops" >/dev/null; then
+    die "owned installer backs an active loop device; reboot into the installed OS before continuing"
+  fi
+}
+
 record_carrier_ownership() {
   local device=$1 table row uuid fs_uuid fstype
   table=$(sfdisk --json "$(cfg_get .disk)")
@@ -9,7 +19,7 @@ record_carrier_ownership() {
   uuid=${uuid,,}
   fs_uuid=$(blkid -s UUID -o value "$device")
   fstype=$(blkid -s TYPE -o value "$device")
-  [[ -n $uuid && -n $fs_uuid && ( $fstype == vfat || $fstype == exfat ) ]] || die "cannot record installer ownership"
+  [[ -n $uuid && -n $fs_uuid && ( $fstype == vfat || $fstype == exfat || $fstype == ntfs ) ]] || die "cannot record installer ownership"
   [[ $(jq -r .start <<< "$row") == "$(cfg_get .installer_start)" ]] || die "installer start differs from the owned range"
   [[ $(jq -r .size <<< "$row") == "$(( $(cfg_get .installer_end) - $(cfg_get .installer_start) + 1 ))" ]] || die "installer size differs from the owned range"
   cfg_set carrier_partuuid "$uuid"
@@ -63,6 +73,9 @@ owned_carrier() {
   [[ $major_minor =~ ^[0-9]+:[0-9]+$ ]] || die "carrier has no kernel identity"
   mounts=$(findmnt -rn -o MAJ:MIN)
   if grep -Fxq "$major_minor" <<< "$mounts"; then die "owned installer is mounted; cleanup refused"; fi
+  # Casper can retain its ISO loop after detaching the original mount. Looking
+  # only at this process's mount namespace would miss that active filesystem.
+  assert_no_carrier_loops "$major_minor"
   physical=$(basename "$(readlink -f "$device")")
   [[ -d /sys/class/block/$physical/holders ]] || die "carrier has no kernel identity"
   for holder in /sys/class/block/"$physical"/holders/*; do

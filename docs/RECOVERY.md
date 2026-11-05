@@ -54,6 +54,37 @@ partition UUID/start, sector size and the correct backup generation first. Use a
 recovery environment when the affected filesystem cannot safely remain mounted. Generic
 blind restore commands are intentionally not supplied.
 
+## Large Casper ISO not found after the kernel starts
+
+Kubuntu 26.10's actual `casper-helpers` filesystem whitelist excludes exFAT and
+includes NTFS. GRUB may successfully load the kernel/initrd from exFAT while
+Casper still reports that it cannot find the ISO. The signed ISO itself should
+not be modified. New large Casper staging selects NTFS; small ISOs retain FAT32.
+See `validation/kubuntu-26.10-casper-root-cause.json` for the source fingerprints.
+
+For an existing, completed and owned exFAT Linux carrier, `repair-carrier --dry-run`
+reviews a migration to NTFS. If the original ISO was relocated, provide its new
+path with `--iso`; its saved SHA-256 and filename must still match. The preview
+requires root to inspect the carrier read-only. Actual migration additionally
+requires `--confirm-rebuild-installer` in a visible privileged terminal.
+
+This operation reformats only the recorded installer filesystem. It refuses a
+changed disk/partition/filesystem identity, a modified EFI loader, mounted or
+mapped storage, an active BootNext, a mismatched ISO, or any unexpected file on
+the carrier. The existing ISO copy must match the verified source before any
+formatting. GPT, OS partitions, boot entries and the owned EFI binary are retained;
+ownership is updated for the new NTFS UUID, and shrink/stage completion markers
+are retained. Recovery metadata and the prior filesystem boot area are saved.
+
+An interrupted repair leaves `phase_in_progress=repair`. Inspect the actual
+filesystem, source, config and backups before deciding on recovery. The metadata
+is not an automatic rollback of the old filesystem, and clearing the marker to
+repeat formatting is unsafe. A completed repair cannot be repeated.
+
+The dedicated loop-image repair fixture has passed with real exFAT/NTFS operations
+and mocked firmware reads. Live-installer recovery remains a separate case until
+the evidence ledger records a successful boot.
+
 ## Cleanup
 
 Only consider removing the installer after booting and checking both operating systems.

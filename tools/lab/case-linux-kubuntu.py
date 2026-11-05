@@ -166,7 +166,7 @@ def prepare(identity, disk, table):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('step', choices=['prepare', 'fetch', 'plan', 'shrink', 'stage', 'boot-installer'])
+    parser.add_argument('step', choices=['prepare', 'fetch', 'plan', 'shrink', 'stage', 'boot-installer', 'repair-preview', 'repair'])
     parser.add_argument('--vm-identity', required=True)
     parser.add_argument('--media-port', type=int, default=8765)
     args = parser.parse_args()
@@ -209,6 +209,8 @@ def main():
                          '--linux-new-size', '22G', '--installer-size', '12G', '--write'],
                 'shrink': ['shrink'], 'stage': ['stage', '--os', 'linux'],
                 'boot-installer': ['boot', '--installer'],
+                'repair-preview': ['repair-carrier', '--iso', str(saved_iso), '--dry-run'],
+                'repair': ['repair-carrier', '--iso', str(saved_iso), '--confirm-rebuild-installer'],
             }
             output = run('bash', engine, *commands[args.step], env=env)
             (STATE / (args.step + '.log')).write_text(output + '\n')

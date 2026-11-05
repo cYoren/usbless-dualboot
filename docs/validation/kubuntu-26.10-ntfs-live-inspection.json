@@ -1,0 +1,543 @@
+{
+  "ok": true,
+  "system": "linux-live",
+  "cmdline": "BOOT_IMAGE=(loop)/casper/vmlinuz boot=casper iso-scan/filename=/kubuntu-26.10-desktop-amd64.iso ---",
+  "release": "PRETTY_NAME=\"Ubuntu 26.10\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"26.10\"\nVERSION=\"26.10 (Stonking Stingray)\"\nVERSION_CODENAME=stonking\nRELEASE_TYPE=stable\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nDOCUMENTATION_URL=\"https://docs.ubuntu.com\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nLOGO=ubuntu-logo\nVENDOR_NAME=\"Canonical\"\nVENDOR_URL=\"https://canonical.com/\"\nUBUNTU_CODENAME=stonking\n",
+  "kernel": "7.3.0-9-generic",
+  "mounts": {
+    "filesystems": [
+      {
+        "target": "/",
+        "source": "/cow",
+        "fstype": "overlay",
+        "options": "rw,relatime,lowerdir=/filesystem.squashfs,upperdir=/cow/upper,workdir=/cow/work,uuid=on,xino=off,nouserxattr"
+      },
+      {
+        "target": "/rofs",
+        "source": "/dev/loop1",
+        "fstype": "squashfs",
+        "options": "ro,noatime,errors=continue,threads=single"
+      },
+      {
+        "target": "/cdrom",
+        "source": "/dev/loop0",
+        "fstype": "iso9660",
+        "options": "ro,noatime,nojoliet,check=s,map=n,blocksize=2048,iocharset=utf8"
+      },
+      {
+        "target": "/dev",
+        "source": "udev",
+        "fstype": "devtmpfs",
+        "options": "rw,nosuid,relatime,size=1892440k,nr_inodes=473110,mode=755,inode64"
+      },
+      {
+        "target": "/dev/pts",
+        "source": "devpts",
+        "fstype": "devpts",
+        "options": "rw,nosuid,noexec,relatime,gid=5,mode=600,ptmxmode=000"
+      },
+      {
+        "target": "/dev/shm",
+        "source": "tmpfs",
+        "fstype": "tmpfs",
+        "options": "rw,nosuid,nodev,inode64,usrquota"
+      },
+      {
+        "target": "/dev/mqueue",
+        "source": "mqueue",
+        "fstype": "mqueue",
+        "options": "rw,nosuid,nodev,noexec,relatime"
+      },
+      {
+        "target": "/dev/hugepages",
+        "source": "hugetlbfs",
+        "fstype": "hugetlbfs",
+        "options": "rw,nosuid,nodev,relatime,pagesize=2M"
+      },
+      {
+        "target": "/run",
+        "source": "tmpfs",
+        "fstype": "tmpfs",
+        "options": "rw,nosuid,nodev,noexec,relatime,size=391492k,mode=755,inode64"
+      },
+      {
+        "target": "/run/credentials/systemd-journald.service",
+        "source": "none",
+        "fstype": "tmpfs",
+        "options": "ro,nosuid,nodev,noexec,relatime,nosymfollow,size=1024k,nr_inodes=1024,mode=700,inode64,noswap"
+      },
+      {
+        "target": "/run/credentials/systemd-resolved.service",
+        "source": "none",
+        "fstype": "tmpfs",
+        "options": "ro,nosuid,nodev,noexec,relatime,nosymfollow,size=1024k,nr_inodes=1024,mode=700,inode64,noswap"
+      },
+      {
+        "target": "/run/user/1000",
+        "source": "tmpfs",
+        "fstype": "tmpfs",
+        "options": "rw,nosuid,nodev,relatime,size=391488k,nr_inodes=97872,mode=700,uid=1000,gid=1000,inode64"
+      },
+      {
+        "target": "/run/user/1000/doc",
+        "source": "portal",
+        "fstype": "fuse.portal",
+        "options": "rw,nosuid,nodev,relatime,user_id=1000,group_id=1000"
+      },
+      {
+        "target": "/run/snapd/ns",
+        "source": "tmpfs[/snapd/ns]",
+        "fstype": "tmpfs",
+        "options": "rw,nosuid,nodev,noexec,relatime,size=391492k,mode=755,inode64"
+      },
+      {
+        "target": "/sys",
+        "source": "sysfs",
+        "fstype": "sysfs",
+        "options": "rw,nosuid,nodev,noexec,relatime"
+      },
+      {
+        "target": "/sys/kernel/security",
+        "source": "securityfs",
+        "fstype": "securityfs",
+        "options": "rw,nosuid,nodev,noexec,relatime"
+      },
+      {
+        "target": "/sys/fs/cgroup",
+        "source": "cgroup2",
+        "fstype": "cgroup2",
+        "options": "rw,nosuid,nodev,noexec,relatime,nsdelegate,memory_recursiveprot,memory_hugetlb_accounting"
+      },
+      {
+        "target": "/sys/fs/pstore",
+        "source": "none",
+        "fstype": "pstore",
+        "options": "rw,nosuid,nodev,noexec,relatime"
+      },
+      {
+        "target": "/sys/firmware/efi/efivars",
+        "source": "efivarfs",
+        "fstype": "efivarfs",
+        "options": "rw,nosuid,nodev,noexec,relatime"
+      },
+      {
+        "target": "/sys/fs/bpf",
+        "source": "bpf",
+        "fstype": "bpf",
+        "options": "rw,nosuid,nodev,noexec,relatime,mode=700"
+      },
+      {
+        "target": "/sys/kernel/config",
+        "source": "configfs",
+        "fstype": "configfs",
+        "options": "rw,nosuid,nodev,noexec,relatime"
+      },
+      {
+        "target": "/sys/kernel/tracing",
+        "source": "tracefs",
+        "fstype": "tracefs",
+        "options": "rw,nosuid,nodev,noexec,relatime"
+      },
+      {
+        "target": "/sys/kernel/debug",
+        "source": "debugfs",
+        "fstype": "debugfs",
+        "options": "rw,nosuid,nodev,noexec,relatime"
+      },
+      {
+        "target": "/sys/fs/fuse/connections",
+        "source": "fusectl",
+        "fstype": "fusectl",
+        "options": "rw,nosuid,nodev,noexec,relatime"
+      },
+      {
+        "target": "/proc",
+        "source": "proc",
+        "fstype": "proc",
+        "options": "rw,nosuid,nodev,noexec,relatime"
+      },
+      {
+        "target": "/proc/sys/fs/binfmt_misc",
+        "source": "systemd-1",
+        "fstype": "autofs",
+        "options": "rw,relatime,fd=43,pgrp=1,timeout=0,minproto=5,maxproto=5,direct,pipe_ino=3639"
+      },
+      {
+        "target": "/proc/sys/fs/binfmt_misc",
+        "source": "binfmt_misc",
+        "fstype": "binfmt_misc",
+        "options": "rw,nosuid,nodev,noexec,relatime"
+      },
+      {
+        "target": "/snap/bare/5",
+        "source": "/dev/loop2",
+        "fstype": "squashfs",
+        "options": "ro,nodev,relatime,errors=continue,threads=single"
+      },
+      {
+        "target": "/snap/core24/2124",
+        "source": "/dev/loop4",
+        "fstype": "squashfs",
+        "options": "ro,nodev,relatime,errors=continue,threads=single"
+      },
+      {
+        "target": "/snap/firefox/9036",
+        "source": "/dev/loop3",
+        "fstype": "squashfs",
+        "options": "ro,nodev,relatime,errors=continue,threads=single"
+      },
+      {
+        "target": "/snap/thunderbird/1282",
+        "source": "/dev/loop5",
+        "fstype": "squashfs",
+        "options": "ro,nodev,relatime,errors=continue,threads=single"
+      },
+      {
+        "target": "/tmp",
+        "source": "tmpfs",
+        "fstype": "tmpfs",
+        "options": "rw,nosuid,nodev,relatime,inode64"
+      },
+      {
+        "target": "/snap/snapd/28254",
+        "source": "/dev/loop7",
+        "fstype": "squashfs",
+        "options": "ro,nodev,relatime,errors=continue,threads=single"
+      },
+      {
+        "target": "/snap/mesa-2404/1839",
+        "source": "/dev/loop6",
+        "fstype": "squashfs",
+        "options": "ro,nodev,relatime,errors=continue,threads=single"
+      },
+      {
+        "target": "/snap/gnome-46-2404/168",
+        "source": "/dev/loop8",
+        "fstype": "squashfs",
+        "options": "ro,nodev,relatime,errors=continue,threads=single"
+      },
+      {
+        "target": "/snap/gtk-common-themes/1535",
+        "source": "/dev/loop9",
+        "fstype": "squashfs",
+        "options": "ro,nodev,relatime,errors=continue,threads=single"
+      }
+    ]
+  },
+  "root": {
+    "filesystems": [
+      {
+        "target": "/",
+        "source": "/cow",
+        "fstype": "overlay",
+        "options": "rw,relatime,lowerdir=/filesystem.squashfs,upperdir=/cow/upper,workdir=/cow/work,uuid=on,xino=off,nouserxattr"
+      }
+    ]
+  },
+  "loop_devices": {
+    "loopdevices": [
+      {
+        "name": "/dev/loop1",
+        "back-file": "/cdrom/casper/filesystem.squashfs",
+        "back-maj:min": "7:0"
+      },
+      {
+        "name": "/dev/loop8",
+        "back-file": "/var/lib/snapd/snaps/gnome-46-2404_168.snap",
+        "back-maj:min": "0:34"
+      },
+      {
+        "name": "/dev/loop6",
+        "back-file": "/var/lib/snapd/snaps/mesa-2404_1839.snap",
+        "back-maj:min": "0:34"
+      },
+      {
+        "name": "/dev/loop4",
+        "back-file": "/var/lib/snapd/snaps/core24_2124.snap",
+        "back-maj:min": "0:34"
+      },
+      {
+        "name": "/dev/loop2",
+        "back-file": "/var/lib/snapd/snaps/bare_5.snap",
+        "back-maj:min": "0:34"
+      },
+      {
+        "name": "/dev/loop0",
+        "back-file": "/isodevice/kubuntu-26.10-desktop-amd64.iso",
+        "back-maj:min": "8:6"
+      },
+      {
+        "name": "/dev/loop9",
+        "back-file": "/var/lib/snapd/snaps/gtk-common-themes_1535.snap",
+        "back-maj:min": "0:34"
+      },
+      {
+        "name": "/dev/loop7",
+        "back-file": "/var/lib/snapd/snaps/snapd_28254.snap",
+        "back-maj:min": "0:34"
+      },
+      {
+        "name": "/dev/loop5",
+        "back-file": "/var/lib/snapd/snaps/thunderbird_1282.snap",
+        "back-maj:min": "0:34"
+      },
+      {
+        "name": "/dev/loop3",
+        "back-file": "/var/lib/snapd/snaps/firefox_9036.snap",
+        "back-maj:min": "0:34"
+      }
+    ]
+  },
+  "storage": {
+    "blockdevices": [
+      {
+        "path": "/dev/loop0",
+        "type": "loop",
+        "size": 5141966848,
+        "fstype": "iso9660",
+        "label": "Kubuntu 26.10 amd64",
+        "partuuid": null,
+        "uuid": "2026-10-13-22-41-29-00",
+        "mountpoints": [
+          "/cdrom"
+        ],
+        "serial": null,
+        "maj:min": "7:0"
+      },
+      {
+        "path": "/dev/loop1",
+        "type": "loop",
+        "size": 4543131648,
+        "fstype": "squashfs",
+        "label": null,
+        "partuuid": null,
+        "uuid": null,
+        "mountpoints": [
+          "/rofs"
+        ],
+        "serial": null,
+        "maj:min": "7:1"
+      },
+      {
+        "path": "/dev/loop2",
+        "type": "loop",
+        "size": 4096,
+        "fstype": "squashfs",
+        "label": null,
+        "partuuid": null,
+        "uuid": null,
+        "mountpoints": [
+          "/snap/bare/5"
+        ],
+        "serial": null,
+        "maj:min": "7:2"
+      },
+      {
+        "path": "/dev/loop3",
+        "type": "loop",
+        "size": 275025920,
+        "fstype": "squashfs",
+        "label": null,
+        "partuuid": null,
+        "uuid": null,
+        "mountpoints": [
+          "/snap/firefox/9036"
+        ],
+        "serial": null,
+        "maj:min": "7:3"
+      },
+      {
+        "path": "/dev/loop4",
+        "type": "loop",
+        "size": 70033408,
+        "fstype": "squashfs",
+        "label": null,
+        "partuuid": null,
+        "uuid": null,
+        "mountpoints": [
+          "/snap/core24/2124"
+        ],
+        "serial": null,
+        "maj:min": "7:4"
+      },
+      {
+        "path": "/dev/loop5",
+        "type": "loop",
+        "size": 233054208,
+        "fstype": "squashfs",
+        "label": null,
+        "partuuid": null,
+        "uuid": null,
+        "mountpoints": [
+          "/snap/thunderbird/1282"
+        ],
+        "serial": null,
+        "maj:min": "7:5"
+      },
+      {
+        "path": "/dev/loop6",
+        "type": "loop",
+        "size": 421507072,
+        "fstype": "squashfs",
+        "label": null,
+        "partuuid": null,
+        "uuid": null,
+        "mountpoints": [
+          "/snap/mesa-2404/1839"
+        ],
+        "serial": null,
+        "maj:min": "7:6"
+      },
+      {
+        "path": "/dev/loop7",
+        "type": "loop",
+        "size": 46882816,
+        "fstype": "squashfs",
+        "label": null,
+        "partuuid": null,
+        "uuid": null,
+        "mountpoints": [
+          "/snap/snapd/28254"
+        ],
+        "serial": null,
+        "maj:min": "7:7"
+      },
+      {
+        "path": "/dev/loop8",
+        "type": "loop",
+        "size": 645148672,
+        "fstype": "squashfs",
+        "label": null,
+        "partuuid": null,
+        "uuid": null,
+        "mountpoints": [
+          "/snap/gnome-46-2404/168"
+        ],
+        "serial": null,
+        "maj:min": "7:8"
+      },
+      {
+        "path": "/dev/loop9",
+        "type": "loop",
+        "size": 96141312,
+        "fstype": "squashfs",
+        "label": null,
+        "partuuid": null,
+        "uuid": null,
+        "mountpoints": [
+          "/snap/gtk-common-themes/1535"
+        ],
+        "serial": null,
+        "maj:min": "7:9"
+      },
+      {
+        "path": "/dev/sda",
+        "type": "disk",
+        "size": 274877906944,
+        "fstype": null,
+        "label": null,
+        "partuuid": null,
+        "uuid": null,
+        "mountpoints": [],
+        "serial": "USBDBLABSYSTEM",
+        "maj:min": "8:0"
+      },
+      {
+        "path": "/dev/sda1",
+        "type": "part",
+        "size": 536870912,
+        "fstype": "vfat",
+        "label": "USBDBLABEFI",
+        "partuuid": "196ef89b-59df-4668-92fd-31624e068f62",
+        "uuid": "3EEF-4BE4",
+        "mountpoints": [],
+        "serial": null,
+        "maj:min": "8:1"
+      },
+      {
+        "path": "/dev/sda2",
+        "type": "part",
+        "size": 16777216,
+        "fstype": null,
+        "label": null,
+        "partuuid": "c4147001-2d51-48cc-82fa-9268139fbd1e",
+        "uuid": null,
+        "mountpoints": [],
+        "serial": null,
+        "maj:min": "8:2"
+      },
+      {
+        "path": "/dev/sda3",
+        "type": "part",
+        "size": 25769803776,
+        "fstype": "ext4",
+        "label": "USBDBLABMEDIA",
+        "partuuid": "b19423ff-3214-40ac-968e-a3c9cb776d00",
+        "uuid": "8f892c7d-7c9c-4568-af97-4167407a3c06",
+        "mountpoints": [],
+        "serial": null,
+        "maj:min": "8:3"
+      },
+      {
+        "path": "/dev/sda4",
+        "type": "part",
+        "size": 2147483648,
+        "fstype": "ext4",
+        "label": null,
+        "partuuid": "53f33539-4c82-40b7-80fd-e739ab190d02",
+        "uuid": "c1294f07-5918-4b58-98ad-747cc814ec5a",
+        "mountpoints": [],
+        "serial": null,
+        "maj:min": "8:4"
+      },
+      {
+        "path": "/dev/sda5",
+        "type": "part",
+        "size": 23622320128,
+        "fstype": "btrfs",
+        "label": "fedora",
+        "partuuid": "da255634-cd51-4db0-b4c1-07e2e195f6c2",
+        "uuid": "f5dec880-4515-4100-8c65-9b738a58f30b",
+        "mountpoints": [],
+        "serial": null,
+        "maj:min": "8:5"
+      },
+      {
+        "path": "/dev/sda6",
+        "type": "part",
+        "size": 12885933568,
+        "fstype": "ntfs",
+        "label": "LINUXINST",
+        "partuuid": "6f6119e0-01f9-4015-aec7-f6f6ed9d0083",
+        "uuid": "29EED3E9100BA43B",
+        "mountpoints": [],
+        "serial": null,
+        "maj:min": "8:6"
+      },
+      {
+        "path": "/dev/sdb",
+        "type": "disk",
+        "size": 134217728,
+        "fstype": "vfat",
+        "label": "USBDBSEED",
+        "partuuid": null,
+        "uuid": "715E-799A",
+        "mountpoints": [],
+        "serial": "1-0000:00:02.0-1",
+        "maj:min": "8:16"
+      },
+      {
+        "path": "/dev/sdb1",
+        "type": "part",
+        "size": 134217728,
+        "fstype": "vfat",
+        "label": "USBDBSEED",
+        "partuuid": null,
+        "uuid": "715E-799A",
+        "mountpoints": [],
+        "serial": null,
+        "maj:min": "8:17"
+      }
+    ]
+  }
+}

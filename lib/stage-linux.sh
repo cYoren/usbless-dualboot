@@ -6,6 +6,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=common.sh
 source "$HERE/common.sh"
 source "$HERE/ownership.sh"
+source "$HERE/carrier.sh"
 
 DRY=0
 while (($#)); do
@@ -48,11 +49,12 @@ PARAMS_OVERRIDE=$(cfg_get '.linux_params // empty')
 
 log "add-linux (beta)"
 log "  ISO:      $ISO ($(( iso_bytes / 1024 / 1024 )) MiB)"
-log "  Carrier:  ${INSTALLER_START}..${INSTALLER_END} as $carrier_fs (label $carrier_label)"
+log "  Carrier:  ${INSTALLER_START}..${INSTALLER_END} (label $carrier_label)"
 log "  GRUB:     standalone EFI on $ESP_MOUNT, loopback-booting the ISO"
 if ((DRY)); then
   log 'dry-run: geometry and ISO fingerprint verified; no changes made'
   log 'Kernel/initrd inspection, Secure Boot checks and distro parameter validation run before actual partition writes.'
+  log 'Filesystem: FAT32 for small ISOs; large Casper ISOs require NTFS, other reviewed families use exFAT.'
   exit 0
 fi
 
@@ -99,6 +101,8 @@ cleanup; trap - EXIT
 [[ -n $KERNEL && -n $INITRD ]] || die "could not locate a kernel/initrd; set .linux_kernel/.linux_initrd/.linux_params in the config"
 [[ $KERNEL =~ ^/[A-Za-z0-9/._+-]+$ && $INITRD =~ ^/[A-Za-z0-9/._+-]+$ ]] || die "unsupported characters in kernel/initrd paths"
 log "  Detected: family=$FAMILY kernel=$KERNEL initrd=$INITRD"
+carrier_fs=$(linux_carrier_filesystem "$FAMILY" "$iso_bytes")
+log "  Carrier filesystem: $carrier_fs"
 
 PARAMS="$PARAMS_OVERRIDE"
 if [[ -z $PARAMS && $FAMILY != casper && $FAMILY != live && $FAMILY != arch ]]; then
@@ -144,7 +148,9 @@ if ! command -v grub-mkstandalone >/dev/null && ! command -v grub2-mkstandalone 
   esac
 fi
 GRUB_STANDALONE=$(command -v grub-mkstandalone || command -v grub2-mkstandalone) || die "a GRUB standalone builder is required"
-if [[ $carrier_fs == exfat ]]; then
+if [[ $carrier_fs == ntfs ]]; then
+  ensure_ntfs_carrier_tools
+elif [[ $carrier_fs == exfat ]]; then
   command -v mkfs.exfat >/dev/null || pkg_install exfatprogs
   need_cmd mkfs.exfat
 else need_cmd mkfs.fat; fi
@@ -173,12 +179,15 @@ udevadm settle
 
 if [[ $carrier_fs == fat32 ]]; then
   mkfs.fat -F 32 -n "$carrier_label" "$CARRIER"
+elif [[ $carrier_fs == ntfs ]]; then
+  mkfs.ntfs -F -Q -L "$carrier_label" "$CARRIER"
 else
   mkfs.exfat -L "$carrier_label" "$CARRIER"
 fi
 
 CARRIER_MNT=$(mktemp -d)
-mount "$CARRIER" "$CARRIER_MNT"
+if [[ $carrier_fs == ntfs ]]; then ntfs-3g "$CARRIER" "$CARRIER_MNT"
+else mount "$CARRIER" "$CARRIER_MNT"; fi
 cleanup_carrier() { mountpoint -q "$CARRIER_MNT" && umount "$CARRIER_MNT" || true; }
 trap cleanup_carrier EXIT
 log "Copying the ISO onto the carrier..."

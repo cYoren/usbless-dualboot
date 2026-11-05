@@ -94,5 +94,14 @@ class CloneIdentityTests(unittest.TestCase):
             agent.assert_clone({'vm_identity': self.identity})
 
 
+class LiveEvidenceTests(unittest.TestCase):
+    def test_installed_fedora_cannot_be_reported_as_live_installer(self):
+        with patch.object(Path, 'read_text', return_value='root=UUID=installed-root ro quiet'), \
+                patch.object(agent, 'run') as run:
+            with self.assertRaisesRegex(ValueError, 'not a booted Casper'):
+                agent.inspect_live()
+            run.assert_not_called()
+
+
 if __name__ == '__main__':
     unittest.main()

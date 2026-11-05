@@ -16,6 +16,7 @@ def engine_bundle():
     output = io.BytesIO()
     paths = [REPO / 'bin/usbless-dualboot', REPO / 'tools/lab/case-linux-ext4.sh',
              REPO / 'tools/lab/case-linux-cleanup.sh',
+             REPO / 'tools/lab/case-linux-repair.sh',
              REPO / 'tools/lab/case-linux-kubuntu.py',
              *sorted((REPO / 'lib').glob('*.sh'))]
     with tarfile.open(fileobj=output, mode='w') as archive:

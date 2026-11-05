@@ -1,5 +1,32 @@
 # Active development status: 2026-11-05
 
+## Experimental development integration (latest)
+
+The requested scope is merging development progress into the open-source main
+branch with limitations recorded, rather than completing the full acceptance
+matrix first. See PR #5 and the latest `docs/HANDOFF.md` checkpoint.
+
+Casper's actual ISO scanner excludes exFAT. Large Casper staging now selects NTFS;
+an explicit ownership-checked `repair-carrier` migrated the existing installer
+without repeating shrink/stage or changing GPT, OS data or EFI. Its real loop-image
+fixture and real clone repair passed. Kubuntu reached its live welcome/desktop,
+and loop backing major:minor confirmed that the ISO came from the owned NTFS
+carrier. Full installation was not started.
+
+Known issue: normal live shutdown stalled with repeated loop0 WRITE I/O errors.
+The disposable clone was paused and stopped, retaining the failed disk state as
+`ntfs-live-shutdown-failed-20261105`; this is not a clean shutdown claim. The
+original VM, staged checkpoint, verified media and all test evidence are preserved.
+Investigate integrity/shutdown before further disk mutations in this case.
+
+Cleanup/repair also now reject active ISO loop references even if their mount is
+not visible. Final local `make test` passed lint, smoke, 64 regression checks,
+6 filesystem-selection + 4 loop-reference checks, and UI-helper checks. Earlier
+unaffected test/build results are reused at their documented revisions.
+
+The seven remaining validation areas below are still pending. No release or
+large-artifact cleanup is part of this integration.
+
 ## Latest preserved checkpoint (takes precedence over historical results below)
 
 The user requested stopping with the work preserved in draft PR #5. Both VMs are

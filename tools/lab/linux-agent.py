@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only evidence and normal Windows reboot in the marked disposable Linux VM."""
+"""Authenticated, allowlisted actions in marked disposable Linux lab VMs."""
 import hashlib
 import hmac
 import json
@@ -14,6 +14,7 @@ import tarfile
 import urllib.request
 import sys
 import uuid
+import shutil
 
 
 def run(*args):
@@ -91,6 +92,18 @@ def windows_entry():
     return matches[0]
 
 
+def inspect_live():
+    cmdline = Path('/proc/cmdline').read_text().strip()
+    if 'boot=casper' not in cmdline.split():
+        raise ValueError('This is not a booted Casper live environment')
+    return dict(ok=True, system='linux-live', cmdline=cmdline,
+                release=Path('/etc/os-release').read_text(), kernel=run('uname', '-r'),
+                mounts=json.loads(run('findmnt', '-J', '--list')),
+                root=json.loads(run('findmnt', '-J', '/')),
+                loop_devices=json.loads(run('losetup', '--list', '--json', '--output', 'NAME,BACK-FILE,BACK-MAJ:MIN')),
+                storage=json.loads(run('lsblk', '-bJ', '-o', 'PATH,TYPE,SIZE,FSTYPE,LABEL,PARTUUID,UUID,MOUNTPOINTS,SERIAL,MAJ:MIN')))
+
+
 def assert_clone(request):
     identity = request.get('vm_identity', '')
     if request.get('vm_role') != 'linux-validation' or not isinstance(identity, str):
@@ -118,17 +131,17 @@ def test_ext4(request):
     with tarfile.open(fileobj=io.BytesIO(source), mode='r:') as archive:
         for member in archive.getmembers():
             path = Path(member.name)
-            allowed = (member.name in ['bin/usbless-dualboot', 'tools/lab/case-linux-ext4.sh', 'tools/lab/case-linux-cleanup.sh', 'tools/lab/case-linux-kubuntu.py'] or
+            allowed = (member.name in ['bin/usbless-dualboot', 'tools/lab/case-linux-ext4.sh', 'tools/lab/case-linux-cleanup.sh', 'tools/lab/case-linux-repair.sh', 'tools/lab/case-linux-kubuntu.py'] or
                        (path.parent == Path('lib') and path.suffix == '.sh'))
             if not member.isfile() or not allowed or path.is_absolute() or '..' in path.parts:
                 raise ValueError('Unexpected member in engine archive')
         archive.extractall(destination, filter='data')
     # Never time out/kill a filesystem operation. A caller timeout retains its state/logs.
-    fixture = 'case-linux-cleanup.sh' if request.get('action') == 'test-cleanup' else 'case-linux-ext4.sh'
+    fixture = {'test-cleanup': 'case-linux-cleanup.sh', 'test-repair': 'case-linux-repair.sh'}.get(request.get('action'), 'case-linux-ext4.sh')
     args = ['bash', str(destination / 'tools/lab' / fixture)]
     if request.get('action') == 'linux-kubuntu':
         step = request.get('lab_step')
-        if step not in ['prepare', 'fetch', 'plan', 'shrink', 'stage', 'boot-installer', 'restore', 'cleanup-preview', 'cleanup']:
+        if step not in ['prepare', 'fetch', 'plan', 'shrink', 'stage', 'boot-installer', 'restore', 'cleanup-preview', 'cleanup', 'repair-preview', 'repair']:
             raise ValueError('Unknown Kubuntu lab step')
         args = [sys.executable, str(destination / 'tools/lab/case-linux-kubuntu.py'),
                 step, '--vm-identity', request['vm_identity'], '--media-port', str(port)]
@@ -147,7 +160,7 @@ def main():
     assert_lab()
     token = read_token()
     rule = 'rule family="ipv4" source address="10.0.2.2" port port="4777" protocol="tcp" accept'
-    firewall = subprocess.run(['firewall-cmd', '--state'], capture_output=True).returncode == 0
+    firewall = bool(shutil.which('firewall-cmd')) and subprocess.run(['firewall-cmd', '--state'], capture_output=True).returncode == 0
     if firewall:
         run('firewall-cmd', '--add-rich-rule=' + rule)
     try:
@@ -175,7 +188,9 @@ def main():
                         assert_lab()
                         if request.get('action') in ['status', 'inspect']:
                             response = inspect()
-                        elif request.get('action') in ['test-ext4', 'test-cleanup', 'linux-kubuntu']:
+                        elif request.get('action') == 'inspect-live':
+                            response = inspect_live()
+                        elif request.get('action') in ['test-ext4', 'test-cleanup', 'test-repair', 'linux-kubuntu']:
                             response = test_ext4(request)
                         elif request.get('action') == 'boot-windows':
                             entry = windows_entry()

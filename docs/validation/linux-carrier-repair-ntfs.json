@@ -1,0 +1,27 @@
+{
+  "ok": true,
+  "source_sha256": "aa76f149d422a28fecaf70328d686e71625f048c4c7b8afddd4c7220b213d625",
+  "source_dir": "/var/tmp/usbless-engine-ier0jk80",
+  "result": {
+    "ok": true,
+    "kind": "Real VM loop-image exFAT-to-NTFS repair, mocked firmware reads; not installed-OS evidence",
+    "case_dir": "/var/tmp/usbless-repair.83rSd7",
+    "backup": "/var/tmp/usbless-repair.83rSd7/state/backups/repair.ITzTnz",
+    "root_sha256": "288c918285e2a7a98e743daf7c4ba5f53a681d4aff5cad822165e0ef4a41e156",
+    "gpt_unchanged": true,
+    "incumbent_data_preserved": true,
+    "efi_unchanged": true,
+    "firmware_unchanged": true,
+    "iso_copy_identical": true,
+    "ownership_refreshed": true,
+    "completion_markers_retained": true,
+    "dry_run_no_writes": true,
+    "confirmation_required": true,
+    "bootnext_refused": true,
+    "wrong_source_refused": true,
+    "mounted_carrier_refused": true,
+    "foreign_file_refused": true,
+    "repeat_refused": true,
+    "ntfs_cleanup_preview_passed": true
+  }
+}
