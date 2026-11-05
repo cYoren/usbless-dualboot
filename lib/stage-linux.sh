@@ -5,6 +5,8 @@ set -Eeuo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=common.sh
 source "$HERE/common.sh"
+source "$HERE/ownership.sh"
+source "$HERE/carrier.sh"
 
 DRY=0
 while (($#)); do
@@ -47,11 +49,12 @@ PARAMS_OVERRIDE=$(cfg_get '.linux_params // empty')
 
 log "add-linux (beta)"
 log "  ISO:      $ISO ($(( iso_bytes / 1024 / 1024 )) MiB)"
-log "  Carrier:  ${INSTALLER_START}..${INSTALLER_END} as $carrier_fs (label $carrier_label)"
+log "  Carrier:  ${INSTALLER_START}..${INSTALLER_END} (label $carrier_label)"
 log "  GRUB:     standalone EFI on $ESP_MOUNT, loopback-booting the ISO"
 if ((DRY)); then
   log 'dry-run: geometry and ISO fingerprint verified; no changes made'
   log 'Kernel/initrd inspection, Secure Boot checks and distro parameter validation run before actual partition writes.'
+  log 'Filesystem: FAT32 for small ISOs; large Casper ISOs require NTFS, other reviewed families use exFAT.'
   exit 0
 fi
 
@@ -98,6 +101,8 @@ cleanup; trap - EXIT
 [[ -n $KERNEL && -n $INITRD ]] || die "could not locate a kernel/initrd; set .linux_kernel/.linux_initrd/.linux_params in the config"
 [[ $KERNEL =~ ^/[A-Za-z0-9/._+-]+$ && $INITRD =~ ^/[A-Za-z0-9/._+-]+$ ]] || die "unsupported characters in kernel/initrd paths"
 log "  Detected: family=$FAMILY kernel=$KERNEL initrd=$INITRD"
+carrier_fs=$(linux_carrier_filesystem "$FAMILY" "$iso_bytes")
+log "  Carrier filesystem: $carrier_fs"
 
 PARAMS="$PARAMS_OVERRIDE"
 if [[ -z $PARAMS && $FAMILY != casper && $FAMILY != live && $FAMILY != arch ]]; then
@@ -133,13 +138,34 @@ need_cmd efibootmgr; need_cmd blkid
 assert_esp_mounted
 sb_state=$(bash "$HERE/probe.sh" --json | jq -r .secure_boot)
 [[ $sb_state == disabled ]] || die "Linux beta requires Secure Boot disabled; current state: $sb_state"
-pkg_install grub 2>/dev/null || pkg_install grub-efi-amd64-bin
-need_cmd grub-mkstandalone
-if [[ $carrier_fs == exfat ]]; then pkg_install exfatprogs; need_cmd mkfs.exfat
+# Fedora names the installed tool grub2-mkstandalone. Reuse an available tool
+# before attempting package installation, including on offline systems.
+if ! command -v grub-mkstandalone >/dev/null && ! command -v grub2-mkstandalone >/dev/null; then
+  case "$(pkg_mgr)" in
+    dnf) pkg_install grub2-tools-extra grub2-efi-x64-modules ;;
+    apt-get) pkg_install grub-efi-amd64-bin ;;
+    *) pkg_install grub ;;
+  esac
+fi
+GRUB_STANDALONE=$(command -v grub-mkstandalone || command -v grub2-mkstandalone) || die "a GRUB standalone builder is required"
+if [[ $carrier_fs == ntfs ]]; then
+  ensure_ntfs_carrier_tools
+elif [[ $carrier_fs == exfat ]]; then
+  command -v mkfs.exfat >/dev/null || pkg_install exfatprogs
+  need_cmd mkfs.exfat
 else need_cmd mkfs.fat; fi
+[[ ! -e $ESP_MOUNT/EFI/usbless && ! -L $ESP_MOUNT/EFI/usbless ]] || die "EFI/usbless already exists; refusing to overwrite unowned boot files"
+# Validate the actual target modules and build the EFI before partition writes.
+# Missing GRUB modules must not leave a half-created carrier behind.
+GRUB_EFI=$(mktemp --suffix=.efi)
+"$GRUB_STANDALONE" -O x86_64-efi -o "$GRUB_EFI" \
+  --modules="part_gpt part_msdos fat exfat ntfs loopback linux normal search search_label search_fs_uuid configfile iso9660" \
+  "boot/grub/grub.cfg=$GRUB_CFG"
+[[ -s $GRUB_EFI ]] || die "GRUB standalone builder produced an empty EFI"
 inst_partnum=$(next_partition_number "$DISK")
 CARRIER=$(partition_path "$DISK" "$inst_partnum")
 phase_begin stage
+[[ ! -b $CARRIER ]] || die "unexpected partition already occupies the planned installer device"
 backup_partition_table "$DISK" stage
 save_boot_order
 
@@ -153,12 +179,15 @@ udevadm settle
 
 if [[ $carrier_fs == fat32 ]]; then
   mkfs.fat -F 32 -n "$carrier_label" "$CARRIER"
+elif [[ $carrier_fs == ntfs ]]; then
+  mkfs.ntfs -F -Q -L "$carrier_label" "$CARRIER"
 else
   mkfs.exfat -L "$carrier_label" "$CARRIER"
 fi
 
 CARRIER_MNT=$(mktemp -d)
-mount "$CARRIER" "$CARRIER_MNT"
+if [[ $carrier_fs == ntfs ]]; then ntfs-3g "$CARRIER" "$CARRIER_MNT"
+else mount "$CARRIER" "$CARRIER_MNT"; fi
 cleanup_carrier() { mountpoint -q "$CARRIER_MNT" && umount "$CARRIER_MNT" || true; }
 trap cleanup_carrier EXIT
 log "Copying the ISO onto the carrier..."
@@ -168,11 +197,7 @@ sync
 umount "$CARRIER_MNT"; rmdir "$CARRIER_MNT"
 trap - EXIT
 
-log "Building a standalone GRUB EFI..."
-GRUB_EFI=$(mktemp --suffix=.efi)
-grub-mkstandalone -O x86_64-efi -o "$GRUB_EFI" \
-  --modules="part_gpt part_msdos fat exfat ntfs loopback linux normal search search_label search_fs_uuid configfile iso9660" \
-  "boot/grub/grub.cfg=$GRUB_CFG"
+log "Installing the verified standalone GRUB EFI..."
 install -D -m 0644 "$GRUB_EFI" "$ESP_MOUNT/EFI/usbless/grubx64.efi"
 rm -f "$GRUB_EFI" "$GRUB_CFG"
 
@@ -184,7 +209,12 @@ efibootmgr --create-only --disk "/dev/$esp_disk" --part "$esp_partnum" \
 
 cfg_set installer_part "$CARRIER"
 cfg_set installer_partnum "$inst_partnum"
+# Used to match the UEFI entry, whose loader is on the ESP, not the ISO carrier.
+# Cleanup must record and validate the carrier's own identity separately.
 cfg_set installer_partuuid "$(blkid -s PARTUUID -o value "$ESP_PART")"
+record_carrier_ownership "$CARRIER"
+cfg_set owned_loader_esp_uuid "$(blkid -s PARTUUID -o value "$ESP_PART")"
+cfg_set owned_loader_sha256 "$(iso_hash "$ESP_MOUNT/EFI/usbless/grubx64.efi")"
 phase_done stage
 log
 log "Linux installer staged. Reboot and pick 'Linux Installer'."

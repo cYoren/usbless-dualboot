@@ -44,7 +44,7 @@ if cfg_exists; then
   if [[ $(cfg_get .direction) == add-linux ]]; then
     check linux_boot warning 'The Linux beta uses an unsigned GRUB. Secure Boot must be disabled or the loader signed and trusted; distro boot support is unverified.'
   elif [[ $(cfg_get .linux_fstype) != btrfs && -n $(cfg_get '.linux_new_size // empty') ]]; then
-    check filesystem blocked 'Automatic shrink currently requires Btrfs. ext4 needs a separate offline procedure.'
+    check filesystem blocked 'ext4 requires shrink --offline from a live environment with the planned filesystem unmounted; online shrink supports Btrfs only.'
   fi
   [[ -n $(cfg_get '.publisher_sha256 // empty') ]] || check authenticity warning 'ISO has a saved fingerprint only. Verify its SHA-256 with the OS publisher.'
 else

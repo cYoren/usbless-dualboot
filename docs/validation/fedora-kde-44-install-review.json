@@ -1,0 +1,45 @@
+{
+  "case": "fedora-kde-44-install-review",
+  "date": "2026-11-02",
+  "vm": "windows-base",
+  "method": "Share disk with other operating systems: Windows",
+  "reclaim_additional_space": false,
+  "encryption": false,
+  "disk": "128 GiB QEMU disk, USBDBLABSYSTEM",
+  "existing_partitions": {
+    "efi": {
+      "partuuid": "196ef89b-59df-4668-92fd-31624e068f62",
+      "size_mib": 512,
+      "filesystem": "vfat",
+      "label": "USBDBLABEFI",
+      "storage_log": "existing efi filesystem mounted at /boot/efi",
+      "format_action_registered": false,
+      "windows_loader_path": "EFI/Microsoft/Boot/bootmgfw.efi",
+      "windows_loader_sha256_before_install": "32b233afb2a8b4c517003796d435358dcad78e421a3ed386b8ee275a6957dbd0"
+    },
+    "windows": {
+      "partuuid": "afe7c143-06c7-4812-93fe-8bf3defe3c32",
+      "filesystem": "ntfs",
+      "label": "USBDBLABWIN",
+      "size_gib_approx": 97.7
+    }
+  },
+  "registered_storage_actions": [
+    "create device partition req0",
+    "create format btrfs filesystem on partition req0",
+    "create device partition req1",
+    "create format ext4 filesystem mounted at /boot on partition req1",
+    "create device btrfs volume fedora",
+    "create format btrfs filesystem on btrfs volume fedora",
+    "create device btrfs subvolume root",
+    "create format btrfs filesystem mounted at / on btrfs subvolume root",
+    "create device btrfs subvolume home",
+    "create format btrfs filesystem mounted at /home on btrfs subvolume home"
+  ],
+  "review_screenshot": "fedora-kde-44-review-efi-warning.png",
+  "review_note": "The GUI labels the existing EFI as 'format as efi'. The storage log instead identifies it as an existing filesystem and registers no format action for it. Its Windows loader hash was captured through a read-only mount before continuing.",
+  "installation_result": "Anaconda reported Successfully installed; installed Fedora and Windows Boot Manager entries present in the resulting GRUB menu",
+  "installation_success_screenshot": "fedora-kde-44-installed.png",
+  "dual_boot_menu_screenshot": "fedora-kde-44-dual-boot-menu.png",
+  "installed_os_boot": "pending"
+}

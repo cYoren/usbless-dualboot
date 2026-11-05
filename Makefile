@@ -24,6 +24,7 @@ shellcheck:
 test: lint
 	@bash tests/smoke.sh
 	@bash tests/regression.sh
+	@bash tests/carrier.sh
 	@bash tests/ui-helper.sh
 
 ui:

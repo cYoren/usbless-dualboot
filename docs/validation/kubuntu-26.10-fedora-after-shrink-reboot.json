@@ -1,0 +1,151 @@
+{
+  "ok": true,
+  "system": "linux",
+  "root": {
+    "filesystems": [
+      {
+        "target": "/",
+        "source": "/dev/sda5[/root]",
+        "fstype": "btrfs",
+        "options": "rw,relatime,seclabel,compress=zstd:1,discard=async,space_cache=v2,subvolid=256,subvol=/root"
+      }
+    ]
+  },
+  "storage": {
+    "blockdevices": [
+      {
+        "path": "/dev/sda",
+        "type": "disk",
+        "size": 274877906944,
+        "fstype": null,
+        "label": null,
+        "partuuid": null,
+        "uuid": null,
+        "mountpoints": [],
+        "serial": "USBDBLABSYSTEM"
+      },
+      {
+        "path": "/dev/sda1",
+        "type": "part",
+        "size": 536870912,
+        "fstype": "vfat",
+        "label": "USBDBLABEFI",
+        "partuuid": "196ef89b-59df-4668-92fd-31624e068f62",
+        "uuid": "3EEF-4BE4",
+        "mountpoints": [
+          "/boot/efi"
+        ],
+        "serial": null
+      },
+      {
+        "path": "/dev/sda2",
+        "type": "part",
+        "size": 16777216,
+        "fstype": null,
+        "label": null,
+        "partuuid": "c4147001-2d51-48cc-82fa-9268139fbd1e",
+        "uuid": null,
+        "mountpoints": [],
+        "serial": null
+      },
+      {
+        "path": "/dev/sda3",
+        "type": "part",
+        "size": 25769803776,
+        "fstype": "ext4",
+        "label": "USBDBLABMEDIA",
+        "partuuid": "b19423ff-3214-40ac-968e-a3c9cb776d00",
+        "uuid": "8f892c7d-7c9c-4568-af97-4167407a3c06",
+        "mountpoints": [
+          "/mnt/usbdb-lab-media"
+        ],
+        "serial": null
+      },
+      {
+        "path": "/dev/sda4",
+        "type": "part",
+        "size": 2147483648,
+        "fstype": "ext4",
+        "label": null,
+        "partuuid": "53f33539-4c82-40b7-80fd-e739ab190d02",
+        "uuid": "c1294f07-5918-4b58-98ad-747cc814ec5a",
+        "mountpoints": [
+          "/boot"
+        ],
+        "serial": null
+      },
+      {
+        "path": "/dev/sda5",
+        "type": "part",
+        "size": 23622320128,
+        "fstype": "btrfs",
+        "label": "fedora",
+        "partuuid": "da255634-cd51-4db0-b4c1-07e2e195f6c2",
+        "uuid": "f5dec880-4515-4100-8c65-9b738a58f30b",
+        "mountpoints": [
+          "/home",
+          "/"
+        ],
+        "serial": null
+      },
+      {
+        "path": "/dev/sdb",
+        "type": "disk",
+        "size": 134217728,
+        "fstype": "vfat",
+        "label": "USBDBSEED",
+        "partuuid": null,
+        "uuid": "715E-799A",
+        "mountpoints": [],
+        "serial": "1-0000:00:02.0-1"
+      },
+      {
+        "path": "/dev/sdb1",
+        "type": "part",
+        "size": 134217728,
+        "fstype": "vfat",
+        "label": "USBDBSEED",
+        "partuuid": null,
+        "uuid": "715E-799A",
+        "mountpoints": [],
+        "serial": null
+      },
+      {
+        "path": "/dev/zram0",
+        "type": "disk",
+        "size": 4002414592,
+        "fstype": "swap",
+        "label": "zram0",
+        "partuuid": null,
+        "uuid": "03221025-87fb-4b0a-aac9-50e75f398743",
+        "mountpoints": [
+          "[SWAP]"
+        ],
+        "serial": null
+      }
+    ]
+  },
+  "sentinel": "55b7f19a33abb3a3dbe32a89602d91f5119373f2f5a7f8ca9f37d265d3f2c1a2",
+  "sentinel_path": "/home/usblab/preserve",
+  "efi_loaders": {
+    "EFI/fedora/gcdia32.efi": "fc365717b7d8a7153bcb73f769e640f5037b7fe8cc2efc75884653ef0663c7a7",
+    "EFI/fedora/gcdx64.efi": "51d290821cd0df32de5c2462cd63252276b63ef8dfc53fda79855fe51c9d1e45",
+    "EFI/fedora/grubia32.efi": "837eb1c1c30fbae1bf13cc91b5bb3e4f9b67497c839e4806154e9d1f744f4050",
+    "EFI/fedora/grubx64.efi": "b8e335da604169cb5bf61cfe474a9ef9c4f88f3c3140f77d94cca50021b3882b",
+    "EFI/fedora/mmia32.efi": "5535707c82de605e26c877eff6f9726504cf0100d9055b37e7cfa6e5a7a7820e",
+    "EFI/fedora/mmx64.efi": "f8af592759c8ab33b69c4b0e772da5a8e2aa6d09c7dbd5e24c62c89fa5fdbd05",
+    "EFI/fedora/shim.efi": "571ea56b855dcf73bec6acb63c5ded44c2a191138bca0d8cfa5aa93f60f46fff",
+    "EFI/fedora/shimia32.efi": "f18994c84f8191b0bda4e504b9e028bc2f428f45ca3e543dcddc6294277808f9",
+    "EFI/fedora/shimx64.efi": "571ea56b855dcf73bec6acb63c5ded44c2a191138bca0d8cfa5aa93f60f46fff",
+    "EFI/Microsoft/Boot/bootmgfw.efi": "32b233afb2a8b4c517003796d435358dcad78e421a3ed386b8ee275a6957dbd0",
+    "EFI/Microsoft/Boot/bootmgr.efi": "3c00a666849681d5e6a3142b314d8a77b3dd8c03211a214bcc9ff744de42375c",
+    "EFI/Microsoft/Boot/memtest.efi": "e67babd52ff92670606ce2883d9d75ce1ad1adc520c480db2b3f416ccd947f20",
+    "EFI/Microsoft/Boot/SecureBootRecovery.efi": "3e4003ce4d576a558ec3b872d751114637e356726abcb40c6318e8dc1328e3ba"
+  },
+  "efi_directories": {
+    "Microsoft": true,
+    "fedora": true,
+    "usbless": false
+  },
+  "firmware": "BootCurrent: 000A\nTimeout: 0 seconds\nBootOrder: 000A,0009,0000,0001,0002,0004,0005,0006,0007,0008\nBoot0000* BootManagerMenuApp\tFvVol(7cb8bdc9-f8eb-4f34-aaea-3ee4af6516a1)/FvFile(eec25bdc-67f2-4d95-b1d5-f81b2039d11d)\n      dp: 04 07 14 00 c9 bd b8 7c eb f8 34 4f aa ea 3e e4 af 65 16 a1 / 04 06 14 00 dc 5b c2 ee f2 67 95 4d b1 d5 f8 1b 20 39 d1 1d / 7f ff 04 00\nBoot0001* EFI Firmware Setup\tFvVol(7cb8bdc9-f8eb-4f34-aaea-3ee4af6516a1)/FvFile(462caa21-7614-4503-836e-8ab6f4662331)\n      dp: 04 07 14 00 c9 bd b8 7c eb f8 34 4f aa ea 3e e4 af 65 16 a1 / 04 06 14 00 21 aa 2c 46 14 76 03 45 83 6e 8a b6 f4 66 23 31 / 7f ff 04 00\nBoot0002* UEFI QEMU QEMU USB HARDDRIVE 1-0000:00:02.0-1\tPciRoot(0x0)/Pci(0x2,0x0)/USB(0,0){auto_created_boot_option}\n      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 02 / 03 05 06 00 00 00 / 7f ff 04 00\n    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2\nBoot0004* UEFI QEMU HARDDISK USBDBLABSYSTEM \tPciRoot(0x0)/Pci(0x1f,0x2)/Sata(0,65535,0){auto_created_boot_option}\n      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 02 1f / 03 12 0a 00 00 00 ff ff 00 00 / 7f ff 04 00\n    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2\nBoot0005* UEFI PXEv4 (MAC:525400123456)\tPciRoot(0x0)/Pci(0x3,0x0)/MAC(525400123456,1)/IPv4(0.0.0.0,0,DHCP,0.0.0.0,0.0.0.0,0.0.0.0){auto_created_boot_option}\n      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 03 / 03 0b 25 00 52 54 00 12 34 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 / 03 0c 1b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 / 7f ff 04 00\n    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2\nBoot0006* UEFI PXEv6 (MAC:525400123456)\tPciRoot(0x0)/Pci(0x3,0x0)/MAC(525400123456,1)/IPv6([::],0,Static,[::],[::],64){auto_created_boot_option}\n      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 03 / 03 0b 25 00 52 54 00 12 34 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 / 03 0d 3c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 / 7f ff 04 00\n    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2\nBoot0007* UEFI HTTPv4 (MAC:525400123456)\tPciRoot(0x0)/Pci(0x3,0x0)/MAC(525400123456,1)/IPv4(0.0.0.0,0,DHCP,0.0.0.0,0.0.0.0,0.0.0.0)/Uri(){auto_created_boot_option}\n      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 03 / 03 0b 25 00 52 54 00 12 34 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 / 03 0c 1b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 / 03 18 04 00 / 7f ff 04 00\n    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2\nBoot0008* UEFI HTTPv6 (MAC:525400123456)\tPciRoot(0x0)/Pci(0x3,0x0)/MAC(525400123456,1)/IPv6([::],0,Static,[::],[::],64)/Uri(){auto_created_boot_option}\n      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 03 / 03 0b 25 00 52 54 00 12 34 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 / 03 0d 3c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 / 03 18 04 00 / 7f ff 04 00\n    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2\nBoot0009* Windows Boot Manager\tHD(1,GPT,196ef89b-59df-4668-92fd-31624e068f62,0x800,0x100000)/\\EFI\\Microsoft\\Boot\\bootmgfw.efi57494e444f5753000100000088000000780000004200430044004f0042004a004500430054003d007b00390064006500610038003600320063002d0035006300640064002d0034006500370030002d0061006300630031002d006600330032006200330034003400640034003700390035007d00000000000100000010000000040000007fff0400\n      dp: 04 01 2a 00 01 00 00 00 00 08 00 00 00 00 00 00 00 00 10 00 00 00 00 00 9b f8 6e 19 df 59 68 46 92 fd 31 62 4e 06 8f 62 02 02 / 04 04 46 00 5c 00 45 00 46 00 49 00 5c 00 4d 00 69 00 63 00 72 00 6f 00 73 00 6f 00 66 00 74 00 5c 00 42 00 6f 00 6f 00 74 00 5c 00 62 00 6f 00 6f 00 74 00 6d 00 67 00 66 00 77 00 2e 00 65 00 66 00 69 00 00 00 / 7f ff 04 00\n    data: 57 49 4e 44 4f 57 53 00 01 00 00 00 88 00 00 00 78 00 00 00 42 00 43 00 44 00 4f 00 42 00 4a 00 45 00 43 00 54 00 3d 00 7b 00 39 00 64 00 65 00 61 00 38 00 36 00 32 00 63 00 2d 00 35 00 63 00 64 00 64 00 2d 00 34 00 65 00 37 00 30 00 2d 00 61 00 63 00 63 00 31 00 2d 00 66 00 33 00 32 00 62 00 33 00 34 00 34 00 64 00 34 00 37 00 39 00 35 00 7d 00 00 00 00 00 01 00 00 00 10 00 00 00 04 00 00 00 7f ff 04 00\nBoot000A* Fedora\tHD(1,GPT,196ef89b-59df-4668-92fd-31624e068f62,0x800,0x100000)/\\EFI\\fedora\\shimx64.efi\n      dp: 04 01 2a 00 01 00 00 00 00 08 00 00 00 00 00 00 00 00 10 00 00 00 00 00 9b f8 6e 19 df 59 68 46 92 fd 31 62 4e 06 8f 62 02 02 / 04 04 34 00 5c 00 45 00 46 00 49 00 5c 00 66 00 65 00 64 00 6f 00 72 00 61 00 5c 00 73 00 68 00 69 00 6d 00 78 00 36 00 34 00 2e 00 65 00 66 00 69 00 00 00 / 7f ff 04 00"
+}

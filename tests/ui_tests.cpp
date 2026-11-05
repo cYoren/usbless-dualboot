@@ -19,16 +19,45 @@ private:
     static bool write(const QString &path, const QByteArray &content) {
         QFile file(path); return file.open(QIODevice::WriteOnly) && file.write(content) == content.size();
     }
+    static QByteArray cleanupView(const QString &previewUuid = "owned-installer", bool reviewed = true) {
+        QJsonObject status{{"state","boot_restored"},{"installer_owned",true},{"disk","/dev/sample"},
+                           {"carrier_partuuid","owned-installer"},{"carrier_sectors","2097152"}};
+        QJsonObject preview{{"disk","/dev/sample"},{"carrier","/dev/sample4"},{"partuuid",previewUuid},{"bytes",1073741824}};
+        return QJsonDocument(QJsonObject{{"status",status},{"doctor",QJsonObject{}},{"exit_code",0},
+                            {"action",reviewed ? "cleanup-preview" : "doctor"},{"cleanup_preview",preview}}).toJson();
+    }
 private slots:
     void initTestCase() { QQuickStyle::setStyle("Material"); }
     void previewCannotLaunchDiskActions() {
         QTemporaryDir dir;
         Backend backend("/nonexistent",dir.path(),true);
-        for (const auto &action : {"plan","shrink","stage","restore","windows"}) {
+        backend.previewCleanup();
+        for (const auto &action : {"plan","shrink","stage","restore","windows","cleanup-preview","cleanup"}) {
             backend.launch(action);
             QVERIFY(!backend.busy()); QVERIFY(backend.error().contains("Preview"));
         }
         QVERIFY(QDir(dir.path()).entryList(QDir::Files).isEmpty());
+    }
+    void cleanupRequiresReviewedPreview() {
+        QTemporaryDir dir;
+        QVERIFY(write(dir.filePath("view.json"),cleanupView("owned-installer",false)));
+        Backend backend("/missing",dir.path());
+        backend.launch("cleanup");
+        QVERIFY(!backend.busy()); QVERIFY(backend.error().contains("Review the installer"));
+    }
+    void cleanupRejectsAnotherPartitionPreview() {
+        QTemporaryDir dir;
+        QVERIFY(write(dir.filePath("view.json"),cleanupView("another-installer")));
+        Backend backend("/missing",dir.path());
+        backend.launch("cleanup");
+        QVERIFY(!backend.busy()); QVERIFY(backend.error().contains("Review the installer"));
+    }
+    void konsoleUsesLiteralExecutableArguments() {
+        const auto args = Backend::terminalArguments("konsole","/runner with spaces","/engine","/state","cleanup",{});
+        QCOMPARE(args.mid(0,3),QStringList({"--hold","-e","bash"}));
+        QCOMPARE(args[3],QString("/runner with spaces"));
+        QCOMPARE(args.last(),QString("cleanup"));
+        QVERIFY(!args.contains("-c"));
     }
     void terminalArgumentsKeepPathsLiteral() {
         const QString hostile = "/tmp/iso with spaces;$(touch SHOULD_NOT_EXIST).iso";
@@ -48,7 +77,7 @@ private slots:
     void phaseGuardRejectsOutOfOrderActions() {
         QTemporaryDir dir;
         Backend backend("/missing",dir.path());
-        for (const auto &action : {"stage","shrink","restore","windows","boot-installer"}) {
+        for (const auto &action : {"stage","shrink","restore","windows","boot-installer","cleanup-preview","cleanup"}) {
             backend.launch(action);
             QVERIFY(!backend.busy()); QVERIFY(backend.error().contains("saved progress"));
         }
@@ -126,6 +155,48 @@ private slots:
             window->setWidth(390); window->setHeight(844); QTest::qWait(20);
             QVERIFY(!window->grabWindow().isNull());
         }
+        QCOMPARE(warnings.size(),0);
+    }
+    void cleanupDialogNeedsBothBootsAndPlanConsent() {
+        QTemporaryDir dir;
+        QVERIFY(write(dir.filePath("view.json"),cleanupView()));
+        Backend backend("/missing",dir.path());
+        Theme theme({},true);
+        Translator translator(dir.filePath("language"));
+        QQmlApplicationEngine engine;
+        QSignalSpy warnings(&engine,&QQmlEngine::warnings);
+        engine.rootContext()->setContextProperty("backend",&backend);
+        engine.rootContext()->setContextProperty("theme",&theme);
+        engine.rootContext()->setContextProperty("translator",&translator);
+        engine.rootContext()->setContextProperty("initialWidth",1140);
+        engine.rootContext()->setContextProperty("initialHeight",820);
+        engine.rootContext()->setContextProperty("initialPage",4);
+        engine.load(QUrl("qrc:/Main.qml"));
+        QCOMPARE(engine.rootObjects().size(),1);
+        auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first()); QVERIFY(window);
+        QTest::qWait(50);
+        auto *both = window->findChild<QObject *>("bothSystemsBooted"); QVERIFY(both);
+        auto *remove = window->findChild<QObject *>("primaryButton"); QVERIFY(remove);
+        QVERIFY(!remove->property("enabled").toBool());
+        both->setProperty("checked",true);
+        QVERIFY(remove->property("enabled").toBool());
+        QVERIFY(QMetaObject::invokeMethod(remove,"clicked"));
+        auto *dialog = window->findChild<QObject *>("confirmationDialog"); QVERIFY(dialog);
+        QVERIFY(dialog->property("visible").toBool());
+        auto *ack = window->findChild<QObject *>("confirmationAcknowledged"); QVERIFY(ack);
+        auto *proceed = window->findChild<QObject *>("confirmationProceedButton"); QVERIFY(proceed);
+        QVERIFY(!proceed->property("enabled").toBool());
+        ack->setProperty("checked",true);
+        QVERIFY(proceed->property("enabled").toBool());
+        both->setProperty("checked",false);
+        QVERIFY(!proceed->property("enabled").toBool());
+        QVERIFY(QMetaObject::invokeMethod(dialog,"reject"));
+        both->setProperty("checked",true);
+        QVERIFY(write(dir.filePath("view.json"),cleanupView("replacement-installer")));
+        backend.refresh();
+        QTRY_VERIFY(!both->property("checked").toBool());
+        QVERIFY(!remove->property("enabled").toBool());
+        QVERIFY(!backend.busy());
         QCOMPARE(warnings.size(),0);
     }
 };

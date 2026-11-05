@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "source_sha256": "ad96a518e9a1e799887bc7bd923093f77978a14b714799e5d3742fff7b89df84",
+  "source_dir": "/var/tmp/usbless-engine-5g5mrvdo",
+  "result": {
+    "ok": true,
+    "kind": "disposable VM storage fixture; not OS installation evidence",
+    "filesystem": "ext4",
+    "encrypted": false,
+    "bytes_before": 6442450944,
+    "bytes_after": 4294967296,
+    "mounted_refused": true,
+    "foreign_uuid_refused": true,
+    "dry_run_no_writes": true,
+    "completed_phase_refused": true,
+    "sentinel_before": "70b31962d98e87d41caa80035817ce0166be104cc79be9590284938d3fd638c2",
+    "sentinel_after": "70b31962d98e87d41caa80035817ce0166be104cc79be9590284938d3fd638c2",
+    "foreign_partition_sha256": "3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351",
+    "foreign_partition_unchanged": true,
+    "gpt_identity_unchanged": true,
+    "backups": "/var/tmp/usbless-ext4.HpqxoA/state/backups/shrink.B0bQ6E",
+    "case_dir": "/var/tmp/usbless-ext4.HpqxoA"
+  }
+}

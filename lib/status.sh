@@ -19,10 +19,13 @@ else
     {direction, disk, linux_part, linux_new_size, esp_part, iso, publisher_sha256,
      installer_start, installer_end, windows_start, windows_end,
      installer_part, last_backup, phase_in_progress,
-     shrink_complete:(.shrink_complete == "1"), stage_complete:(.stage_complete == "1"),
+     carrier_partuuid, carrier_sectors, installer_owned:(.carrier_ownership_version == "1"),
+     shrink_complete:(.shrink_complete == "1"), stage_complete:(.stage_complete == "1"), cleanup_complete:(.cleanup_complete == "1"),
      boot_scheduled:(.boot_scheduled == "1"), boot_restored:(.boot_restored == "1")} +
     (if (.phase_in_progress // "") != "" then
       {state:"interrupted",next:"Stop. Inspect last_backup and the disk before clearing phase_in_progress. Do not reboot into the installer."}
+    elif .cleanup_complete == "1" then
+      {state:"installer_removed",next:"Installer removed; recovery metadata is retained. Confirm both installed operating systems still boot."}
     elif .boot_restored == "1" then
       {state:"boot_restored",next:"Confirm both OSes boot. Run windows --add for Windows menu integration. Read guide before any cleanup."}
     elif .boot_scheduled == "1" then

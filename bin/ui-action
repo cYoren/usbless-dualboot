@@ -16,6 +16,8 @@ case "$ACTION" in
   cancel) args=(boot --cancel) ;;
   windows) args=(windows --add) ;;
   doctor) args=(doctor) ;;
+  cleanup-preview) args=(cleanup --installer-only --dry-run --json) ;;
+  cleanup) args=(cleanup --installer-only --confirm-both-booted) ;;
   *) printf 'Unknown action\n' >&2; exit 2 ;;
 esac
 printf '%s\n' "$$" > "$STATE/running"
@@ -29,9 +31,15 @@ if [[ $ACTION == plan && $result == 0 ]]; then cp -- "$STATE/action.log" "$STATE
 status=$(sudo -n -- env USBDB_CONFIG="$CONFIG" USBDB_STATE_DIR="$STATE" "$ENGINE" status --json 2>/dev/null) || status='{"state":"unavailable","next":"Read the terminal output and refresh the checks."}'
 doctor=$(sudo -n -- env USBDB_CONFIG="$CONFIG" USBDB_STATE_DIR="$STATE" "$ENGINE" doctor --json 2>/dev/null) || true
 [[ -n $doctor ]] || doctor='{"ready":false,"checks":[],"blockers":1}'
+cleanup_preview=null
+if [[ $ACTION == cleanup-preview && $result == 0 ]]; then
+  if jq -e 'type == "object" and (.disk | type == "string") and (.carrier | type == "string") and (.partuuid | type == "string") and (.bytes | type == "number" and . > 0)' "$STATE/action.log" >/dev/null; then
+    cleanup_preview=$(cat "$STATE/action.log")
+  else result=1; fi
+fi
 tmp=$(mktemp "$STATE/view.json.XXXXXX")
 if jq -n --argjson status "$status" --argjson doctor "$doctor" --argjson code "$result" \
-    --arg action "$ACTION" --arg revision "$(date +%s%N)" '{status:$status,doctor:$doctor,exit_code:$code,action:$action,revision:$revision}' > "$tmp"; then
+    --argjson cleanup_preview "$cleanup_preview" --arg action "$ACTION" --arg revision "$(date +%s%N)" '{status:$status,doctor:$doctor,exit_code:$code,action:$action,revision:$revision,cleanup_preview:$cleanup_preview}' > "$tmp"; then
   mv "$tmp" "$STATE/view.json"
 else
   rm -f "$tmp"

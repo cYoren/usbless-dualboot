@@ -28,6 +28,12 @@ ApplicationWindow {
     property color mint: "#a3d8bf"
     property string pendingAction: ""
     property string progress: backend.saved.state || "not_planned"
+    property bool installerRemoved: progress === "installer_removed"
+    property bool cleanupReady: Boolean(backend.cleanupPreview.carrier) && Number(backend.cleanupPreview.bytes) > 0
+    property string cleanupIdentity: String(backend.cleanupPreview.disk || "") + "|" + String(backend.cleanupPreview.partuuid || "") + "|" + String(backend.cleanupPreview.bytes || "")
+    property bool interfaceReady: false
+    Component.onCompleted: window.interfaceReady = true
+    onCleanupIdentityChanged: if (interfaceReady) bothBooted.checked = false
     property var steps: [qsTr("Check your PC"), qsTr("Choose an installer"), qsTr("Review the plan"), qsTr("Prepare installation"), qsTr("Finish up")]
 
     function advance() {
@@ -37,7 +43,7 @@ ApplicationWindow {
             else { backend.launch("plan"); page = 2 }
         } else if (page === 2) page = 3
         else if (page === 3) {
-            if (progress === "boot_scheduled" || progress === "boot_restored") page = 4
+            if (progress === "boot_scheduled" || progress === "boot_restored" || installerRemoved) page = 4
             else {
                 pendingAction = progress === "shrunk" ? "stage" : progress === "staged" ? "boot-installer" : "shrink"
                 confirm.open()
@@ -48,7 +54,7 @@ ApplicationWindow {
         if (page === 0) return qsTr("Choose an installer")
         if (page === 1) return qsTr("Create my plan")
         if (page === 2) return qsTr("Prepare installation")
-        if (page === 4) return progress === "boot_restored" ? qsTr("Refresh progress") : qsTr("Restore boot priority")
+        if (page === 4) return cleanupReady && progress === "boot_restored" ? qsTr("Remove installer") : progress === "boot_restored" || installerRemoved ? qsTr("Refresh progress") : qsTr("Restore boot priority")
         if (progress === "shrunk") return qsTr("Build the installer")
         if (progress === "staged") return qsTr("Set the next boot")
         if (progress === "boot_scheduled" || progress === "boot_restored") return qsTr("Finish up")
@@ -60,6 +66,7 @@ ApplicationWindow {
         if (progress === "staged") return qsTr("The installer is ready. Set the next boot, then restart when you are ready.")
         if (progress === "boot_scheduled") return qsTr("The next restart will use the installer once. This does not mean the new system has been installed.")
         if (progress === "boot_restored") return qsTr("Your previous boot priority is restored. Check that both operating systems start.")
+        if (installerRemoved) return qsTr("The installer is removed. Its space is available, and recovery backups are retained.")
         if (progress === "interrupted") return qsTr("An earlier action was interrupted. Inspect recovery information before retrying.")
         return qsTr("Create and review your plan before making room on the drive.")
     }
@@ -216,10 +223,10 @@ ApplicationWindow {
                                     Label { text: window.steps[window.page]; color: window.mint; font.pixelSize: 13; font.weight: Font.Medium }
                                     Label {
                                         Layout.fillWidth: true
-                                        text: window.page === 0 ? qsTr("Make room for\nsomething new.") : window.page === 1 ? qsTr("Bring your installer.") : window.page === 2 ? qsTr("Know what will change.") : window.page === 3 ? qsTr("One careful step\nat a time.") : qsTr("Welcome to both worlds.")
+                                        text: window.page === 0 ? qsTr("Make room for\nsomething new.") : window.page === 1 ? qsTr("Bring your installer.") : window.page === 2 ? qsTr("Know what will change.") : window.page === 3 ? qsTr("One careful step\nat a time.") : window.installerRemoved ? qsTr("Installer removed") : window.cleanupReady ? qsTr("Remove the installer") : qsTr("Welcome to both worlds.")
                                         color: window.ink; font.pixelSize: window.compact ? 31 : 40; font.weight: Font.DemiBold; lineHeight: 1.08; wrapMode: Text.WordWrap
                                     }
-                                    Copy { text: window.page === 0 ? qsTr("Add Windows beside Linux using your internal drive. No USB stick needed.") : window.page === 1 ? qsTr("Use an official ISO. We will check it before preparing your drive.") : window.page === 2 ? qsTr("A plan changes no partitions. Review it before continuing.") : window.page === 3 ? qsTr("Progress is saved between restarts. Each disk change needs your confirmation.") : qsTr("Keep both systems easy to reach, then check that each one boots."); font.pixelSize: 14 }
+                                    Copy { text: window.page === 0 ? qsTr("Add Windows beside Linux using your internal drive. No USB stick needed.") : window.page === 1 ? qsTr("Use an official ISO. We will check it before preparing your drive.") : window.page === 2 ? qsTr("A plan changes no partitions. Review it before continuing.") : window.page === 3 ? qsTr("Progress is saved between restarts. Each disk change needs your confirmation.") : window.cleanupReady ? qsTr("Confirm that both systems start before freeing this space.") : qsTr("Keep both systems easy to reach, then check that each one boots."); font.pixelSize: 14 }
                                 }
                                 Image { visible: !window.compact && window.page === 0; source: "qrc:/raccoon.png"; fillMode: Image.PreserveAspectFit; Layout.preferredWidth: window.wide ? 174 : 150; Layout.preferredHeight: 184; Accessible.name: qsTr("Raccoon holding an internal drive") }
                             }
@@ -343,6 +350,9 @@ ApplicationWindow {
                             ColumnLayout {
                                 visible: window.page === 4
                                 Layout.fillWidth: true; spacing: 20
+                                ColumnLayout {
+                                visible: progress !== "boot_restored" && !window.installerRemoved
+                                Layout.fillWidth: true; spacing: 20
                                 Heading { text: qsTr("Inside the installer"); font.pixelSize: 18 }
                                 Copy {
                                     visible: backend.saved.windows_start !== undefined && backend.saved.windows_start !== null && backend.saved.windows_start !== ""
@@ -353,10 +363,30 @@ ApplicationWindow {
                                 CheckRow { message: qsTr("Keep Linux, EFI, recovery and installer partitions intact.") }
                                 CheckRow { message: qsTr("After installation, boot Linux from the firmware menu.") }
                                 Rectangle { Layout.fillWidth: true; height: 1; color: window.line }
-                                Heading { text: qsTr("Back in Linux"); font.pixelSize: 18 }
-                                Copy { text: qsTr("Restore your previous boot priority. Keep the installer and backups until both systems boot successfully.") }
-                                CheckBox { id: installed; Layout.fillWidth: true; text: qsTr("I have installed the new system and returned to Linux"); contentItem: Label { text: installed.text; color: window.ink; wrapMode: Text.WordWrap; leftPadding: installed.indicator.width + 10; verticalAlignment: Text.AlignVCenter } }
-                                QuietButton { text: qsTr("Add Windows to my boot menu"); visible: backend.direction === "windows"; enabled: installed.checked && !backend.busy && !backend.demo; onClicked: { window.pendingAction = "windows"; confirm.open() } }
+                                }
+                                Heading { visible: !window.cleanupReady && !window.installerRemoved; text: qsTr("Back in Linux"); font.pixelSize: 18 }
+                                Copy { visible: !window.cleanupReady; text: window.installerRemoved ? qsTr("The installer space is now available. Keep your recovery backups and check that both systems still start.") : progress === "boot_restored" ? qsTr("Start each operating system and check your files before removing the installer.") : qsTr("Restore your previous boot priority. Keep the installer and backups until both systems boot successfully.") }
+                                CheckBox { id: installed; visible: progress !== "boot_restored" && !window.installerRemoved; Layout.fillWidth: true; text: qsTr("I have installed the new system and returned to Linux"); contentItem: Label { text: installed.text; color: window.ink; wrapMode: Text.WordWrap; leftPadding: installed.indicator.width + 10; verticalAlignment: Text.AlignVCenter } }
+                                QuietButton { text: qsTr("Add Windows to my boot menu"); visible: backend.direction === "windows" && !window.installerRemoved && !window.cleanupReady; enabled: progress === "boot_restored" && !backend.busy && !backend.demo; onClicked: { window.pendingAction = "windows"; confirm.open() } }
+                                ColumnLayout {
+                                    visible: progress === "boot_restored" && !window.installerRemoved
+                                    Layout.fillWidth: true; spacing: 16
+                                    Rectangle { visible: !window.cleanupReady; Layout.fillWidth: true; height: 1; color: window.line }
+                                    Heading { visible: !window.cleanupReady; text: qsTr("Remove the installer"); font.pixelSize: 18 }
+                                    Copy { visible: !window.cleanupReady; text: qsTr("Review the saved installer partition before freeing its space. Your system partitions keep their sizes.") }
+                                    Copy { visible: backend.saved.installer_owned !== true; text: qsTr("USBless cannot identify this plan's installer safely. Open the recovery instructions to inspect it.") }
+                                    Copy { visible: window.cleanupReady; color: window.ink; text: qsTr("Installer: %1 on %2, %3 GiB.").arg(backend.cleanupPreview.carrier || "").arg(backend.cleanupPreview.disk || "").arg((Number(backend.cleanupPreview.bytes || 0) / 1073741824).toLocaleString(Qt.locale(), 'f', 1)) }
+                                    CheckBox {
+                                        id: bothBooted
+                                        objectName: "bothSystemsBooted"
+                                        visible: window.cleanupReady
+                                        Layout.fillWidth: true
+                                        text: qsTr("Both operating systems start and my files are intact")
+                                        enabled: !backend.busy && !backend.demo
+                                        contentItem: Label { text: bothBooted.text; color: window.ink; wrapMode: Text.WordWrap; leftPadding: bothBooted.indicator.width + 10; verticalAlignment: Text.AlignVCenter }
+                                    }
+                                    QuietButton { objectName: "cleanupReviewButton"; text: window.cleanupReady ? qsTr("Review the removal plan again") : qsTr("Review installer removal"); Layout.fillWidth: window.compact; enabled: backend.saved.installer_owned === true && !backend.busy && !backend.demo; onClicked: backend.launch("cleanup-preview") }
+                                }
                                 QuietButton { text: qsTr("Open recovery instructions"); onClicked: backend.openRecovery() }
                                 Copy { visible: backend.saved.last_backup !== undefined; text: qsTr("Recovery metadata: %1").arg(backend.saved.last_backup || ""); font.pixelSize: 12 }
                             }
@@ -388,8 +418,8 @@ ApplicationWindow {
                             bottomInset: 0
                             leftPadding: 20; rightPadding: 20
                             font.weight: Font.DemiBold; font.pixelSize: window.compact ? 12 : 14
-                            enabled: !backend.busy && progress !== "interrupted" && (window.page !== 4 || installed.checked || progress === "boot_restored") && (window.page < 2 || backend.demo || ["planned","shrunk","staged","boot_scheduled","boot_restored"].indexOf(progress) >= 0)
-                            onClicked: { if (window.page === 4 && progress === "boot_restored") backend.refresh(); else window.advance() }
+                            enabled: !backend.busy && progress !== "interrupted" && (window.page !== 4 || installed.checked || progress === "boot_restored" || window.installerRemoved) && (window.page !== 4 || !window.cleanupReady || (bothBooted.checked && !backend.demo)) && (window.page < 2 || backend.demo || ["planned","shrunk","staged","boot_scheduled","boot_restored","installer_removed"].indexOf(progress) >= 0)
+                            onClicked: { if (window.page === 4 && window.cleanupReady && progress === "boot_restored") { window.pendingAction = "cleanup"; confirm.open() } else if (window.page === 4 && (progress === "boot_restored" || window.installerRemoved)) backend.refresh(); else window.advance() }
                             background: Rectangle { color: !parent.enabled ? "#40515a" : parent.down ? Qt.darker(theme.accent,1.15) : theme.accent; radius: theme.radius; border.width: parent.activeFocus ? 2 : 0; border.color: window.ink }
                             contentItem: Label { text: parent.text; color: parent.enabled ? theme.foreground : window.muted; font: parent.font; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; wrapMode: Text.WordWrap }
                             Accessible.name: text
@@ -407,22 +437,30 @@ ApplicationWindow {
         implicitWidth: 520
         width: Math.min(window.width - 32, 520)
         modal: true
-        title: qsTr("Review before continuing")
+        title: window.pendingAction === "cleanup" ? qsTr("Remove the saved installer?") : qsTr("Review before continuing")
         standardButtons: Dialog.Cancel | Dialog.Ok
         onOpened: acknowledged.checked = false
-        onAccepted: if (acknowledged.checked) backend.launch(window.pendingAction)
+        onAccepted: if (acknowledged.checked && (window.pendingAction !== "cleanup" || bothBooted.checked)) backend.launch(window.pendingAction)
         footer: DialogButtonBox {
             standardButtons: Dialog.Cancel | Dialog.Ok
-            Component.onCompleted: standardButton(Dialog.Ok).enabled = Qt.binding(function() { return acknowledged.checked && !backend.demo })
+            Component.onCompleted: {
+                standardButton(Dialog.Ok).objectName = "confirmationProceedButton"
+                standardButton(Dialog.Ok).enabled = Qt.binding(function() { return acknowledged.checked && !backend.demo && (window.pendingAction !== "cleanup" || (bothBooted.checked && window.cleanupReady)) })
+                standardButton(Dialog.Ok).text = Qt.binding(function() { return window.pendingAction === "cleanup" ? qsTr("Remove installer") : qsTr("Continue") })
+            }
             onAccepted: confirm.accept()
             onRejected: confirm.reject()
         }
         contentItem: ColumnLayout {
             spacing: 18
-            Copy { text: qsTr("This action can change storage or boot settings. Review the saved plan and make sure you have a separate backup."); color: window.ink }
+            Copy { text: window.pendingAction === "cleanup" ? qsTr("Only the installer shown in the removal plan will be removed. Keep a separate copy of your recovery backups.") : qsTr("This action can change storage or boot settings. Review the saved plan and make sure you have a separate backup."); color: window.ink }
             Copy { text: qsTr("A terminal will open for your password. USBless never receives it."); font.pixelSize: 13 }
-            CheckBox { id: acknowledged; text: qsTr("I reviewed the plan and want to continue"); Layout.fillWidth: true; contentItem: Label { text: acknowledged.text; wrapMode: Text.WordWrap; color: window.ink; leftPadding: acknowledged.indicator.width + 10 } }
+            CheckBox { id: acknowledged; objectName: "confirmationAcknowledged"; text: qsTr("I reviewed the plan and want to continue"); Layout.fillWidth: true; contentItem: Label { text: acknowledged.text; wrapMode: Text.WordWrap; color: window.ink; leftPadding: acknowledged.indicator.width + 10 } }
         }
+    }
+    Connections {
+        target: backend
+        function onChanged() { if (!window.cleanupReady || window.installerRemoved) bothBooted.checked = false }
     }
     Dialog {
         id: shortcuts

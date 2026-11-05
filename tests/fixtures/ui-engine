@@ -12,6 +12,10 @@ case "${1:-}" in
   shrink)
     printf 'Simulated interruption, no real storage involved.\n'
     exit 42 ;;
+  cleanup)
+    printf '%s\n' "$@" > "$USBDB_TEST_RECEIVED"
+    if [[ ${USBDB_TEST_BAD_CLEANUP:-0} == 1 ]]; then printf 'not a removal plan\n'; exit 0; fi
+    printf '{"disk":"sample","carrier":"sample4","partuuid":"sample-uuid","bytes":1073741824}\n' ;;
   status)
     printf '{"state":"planned","direction":"add-windows","disk":"sample"}\n' ;;
   doctor)

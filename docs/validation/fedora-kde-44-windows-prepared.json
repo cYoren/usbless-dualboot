@@ -1,0 +1,27 @@
+{
+  "case": "fedora-kde-44-windows-prepared",
+  "date": "2026-11-02",
+  "vm": "windows-base",
+  "payload_sha256": "5c1529b838ca342d4f47e1cc26765efc8e0f38c97c73e5609bb1131997f15a78",
+  "executable_sha256": "37470273d7486298dda08647d3ccb6a3d447feb06bcc293f1d1fd0d5b2449880",
+  "plan_id": "d46687eb15654929ef12f39d62200a2b3160868b37d4abe4df7900d14b4fe010",
+  "result": {
+    "ok": true,
+    "status": "ready",
+    "windows_shrunk": true,
+    "installer_copied": true,
+    "boot_registered": true,
+    "boot_number": 3,
+    "installer_offset_bytes": 105463676928,
+    "installer_size_bytes": 4294967296,
+    "linux_reserved_gib": 25,
+    "whole_disk_replacement": false,
+    "preservation_sentinel_sha256": "185710B65F8518ED5706BFF3DB0B203C09C35916F3B83C403A639E012DFDC088"
+  },
+  "windows_boot_after_preparation": {
+    "ok": true,
+    "agent_payload_sha256": "5c1529b838ca342d4f47e1cc26765efc8e0f38c97c73e5609bb1131997f15a78",
+    "preservation_sentinel_sha256": "185710B65F8518ED5706BFF3DB0B203C09C35916F3B83C403A639E012DFDC088"
+  },
+  "pending": ["installer boot", "Linux installation", "installed Linux boot", "Windows boot after installation", "cleanup and recovery"]
+}

@@ -25,6 +25,9 @@ Status: 0.2.0, guarded storage phases with isolated regression tests; generalize
 - src/Main.qml, src/backend.cpp - optional native Qt Quick app using the same engine.
 - bin/build-ui / bin/test-ui / bin/install-ui - build, offscreen GUI tests and Arch package installation.
 - docs/GUI.md - graphical workflow, state/privilege model, keyboard shortcuts and validation limits.
+- platforms/windows/Usbless.Windows.csproj - Windows-native .NET Framework application and embedded PowerShell engine.
+- data/catalog.json, docs/COVERAGE.md - implemented recipes, planned entries and version-specific evidence.
+- docs/VM-LAB.md - disposable VM setup, cached media, diagnostics and test-payload refresh.
 
 ## Directions
 - add-windows (implemented): Linux machine gains Windows.
@@ -51,7 +54,14 @@ Status: 0.2.0, guarded storage phases with isolated regression tests; generalize
 5. If the user is dual-booting Windows, warn about BitLocker/Device Encryption recovery keys before changing Secure Boot keys or state.
 6. Disabling Secure Boot may recover unsigned-loader failures; it does not repair storage damage.
 7. Use one config across runs. Inspect interrupted phases and backups; do not blindly retry.
-8. No automatic undo, ext4 shrink, second-disk planning or Windows-native frontend. See docs/HOP-COMPARISON.md.
+8. Linux has guarded offline ext4 shrink and ownership-based installer cleanup, with VM storage-fixture evidence. Automatic undo, filesystem growth and second-disk planning remain unavailable. See docs/OFFLINE-EXT4.md and docs/COVERAGE.md for the exact validation boundary. Windows-native implementation is under platforms/windows.
+
+Large Casper ISOs require an NTFS carrier: Kubuntu 26.10's actual initramfs scanner
+does not accept exFAT. `repair-carrier --dry-run [--iso VERIFIED-RELOCATED-SOURCE]`
+reviews migration of a completed owned exFAT Linux carrier. Actual migration needs
+`--confirm-rebuild-installer`, preserves GPT/OS/EFI and completion markers, and
+retains an interruption marker on failure. Do not rerun stage or clear markers.
+See docs/RECOVERY.md and docs/validation/kubuntu-26.10-casper-root-cause.json.
 
 ## Environment assumptions
 - Linux in UEFI mode, GPT disk.

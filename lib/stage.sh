@@ -4,6 +4,7 @@ set -Eeuo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=common.sh
 source "$HERE/common.sh"
+source "$HERE/ownership.sh"
 
 DRY=0; OS=""
 while (($#)); do
@@ -75,6 +76,7 @@ backup_partition_table "$DISK" stage
 save_boot_order
 
 inst_type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7
+[[ ! -b $SETUP_PART ]] || die "unexpected partition already occupies the planned installer device"
 if [[ ! -b $SETUP_PART ]]; then
   log "Creating FAT32 installer partition..."
   printf '%s : start=%s, size=%s, type=%s, name="Windows Installer"\n' \
@@ -117,6 +119,7 @@ efibootmgr --create-only --disk "$DISK" --part "$inst_partnum" \
 cfg_set installer_part "$SETUP_PART"
 cfg_set installer_partnum "$inst_partnum"
 cfg_set installer_partuuid "$(blkid -s PARTUUID -o value "$SETUP_PART")"
+record_carrier_ownership "$SETUP_PART"
 phase_done stage
 log
 log "Installer ready on $SETUP_PART. Reboot and pick 'Windows 11 Installer' to install the target OS."

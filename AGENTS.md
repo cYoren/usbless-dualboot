@@ -8,7 +8,7 @@ Read these first: `llms.txt` (one-file brief), `SKILL.md` (when/how to use), `do
 
 1. Run `usbless-dualboot probe` (read-only) and show the user the result.
 2. Run `usbless-dualboot plan ...` and show the exact sizes/partitions. Get confirmation.
-3. Do **not** run any mutating phase (`shrink`, `stage`, `boot`, `windows`, `secureboot`) until
+3. Do **not** run any mutating phase (`shrink`, `stage`, `repair-carrier`, `cleanup`, `boot`, `windows`, `secureboot`) until
    the plan is confirmed.
 
 ## Rules
@@ -47,6 +47,13 @@ generated GRUB is unsigned, so Secure Boot must be off or the GRUB signed first.
   root uses `/var/lib/usbless-dualboot/config.json` by default.
 - An interrupted shrink/stage blocks retry. Inspect the actual disk and backups before
   clearing `phase_in_progress`. Never reset a completion marker to repeat a destructive phase.
-- `boot --cancel` removes BootNext only; no automatic cleanup or undo is implemented.
-- This CLI runs on Linux. Hop's Windows frontend, signed boot strategy and distro results
-  are not available just because we adopted some of its ideas.
+- `boot --cancel` removes BootNext only. `cleanup --installer-only --dry-run` reviews
+  removal of a carrier with a saved ownership record. Mutating cleanup additionally needs
+  `--confirm-both-booted`; it retains recovery metadata and does not grow OS filesystems.
+  Never infer ownership from a label or reset an interrupted phase to retry cleanup.
+- For a completed owned exFAT Linux carrier that Casper cannot discover, review
+  `repair-carrier --dry-run [--iso VERIFIED-RELOCATED-SOURCE]`. Actual NTFS migration
+  needs `--confirm-rebuild-installer`; it preserves GPT/OS/EFI and completed phases.
+  Do not repeat stage or clear a repair interruption marker. See `docs/RECOVERY.md`.
+- This Bash CLI runs on Linux. The Windows-native implementation is under `platforms/windows`.
+  Validation results must remain specific to the platform, release and tested operation.

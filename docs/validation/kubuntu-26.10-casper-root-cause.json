@@ -1,0 +1,27 @@
+{
+  "date": "2026-11-05",
+  "status": "root-cause-confirmed-from-official-media",
+  "iso_sha256": "8160b1d6266dfe1998d183b19713680263c09669f101e0e41cbcf11f50b6f785",
+  "initrd_iso_path": "casper/initrd",
+  "initrd_bytes": 96571264,
+  "userspace_zstd_stream_offset": 68522780,
+  "userspace_cpio_bytes": 71235260,
+  "iso_scanner": {
+    "path": "scripts/casper-premount/20iso_scan",
+    "sha256": "bb0706e618e26dd64562005bb68cf20f03519386fe5e288f296316a4ea4c6581",
+    "behavior": "Reads iso-scan/filename and calls find_path; panics with the observed ISO-not-found error when that search fails."
+  },
+  "helpers": {
+    "path": "scripts/casper-helpers",
+    "sha256": "e29ece94d09e2da5f8338d12a4096d8790ddffdc40d89c26a0258056ffbb62f7",
+    "supported_filesystems": ["ext2", "ext3", "ext4", "xfs", "jfs", "reiserfs", "vfat", "ntfs", "iso9660", "btrfs", "udf"],
+    "behavior": "find_path attempts a filesystem only when is_supported_fs accepts its detected type. exFAT is excluded; NTFS is accepted."
+  },
+  "ntfs_userspace_driver_in_initramfs": "usr/bin/ntfs-3g",
+  "conclusion": "GRUB exFAT support does not make this Casper ISO scanner accept an exFAT carrier. Use NTFS for large Casper ISOs without modifying the signed publisher media.",
+  "verification_method": "Unprivileged extraction from the existing verified ISO using bsdtar, CPIO stream boundary inspection and zstd. No host mounts, block devices or module changes.",
+  "repair_validation_pending": false,
+  "repair_evidence": "kubuntu-26.10-ntfs-repair.json",
+  "live_installer_boot_pending": false,
+  "live_environment_evidence": "kubuntu-26.10-ntfs-live-inspection.json"
+}

@@ -1,0 +1,1759 @@
+{
+  "format": 1,
+  "project": "USBless Dualboot",
+  "policy": "A catalog entry does not establish boot or installation support. Validation requires local evidence for the exact platform, release and operation.",
+  "entries": [
+    {
+      "id": "elementary",
+      "name": "elementary OS",
+      "baseline": true,
+      "download": {
+        "provider": "elementary",
+        "source": "elementary.io",
+        "base": null,
+        "prefix": null,
+        "edition": null
+      },
+      "restrictions": {
+        "secure_boot_off": false,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "elementary",
+            "Name": "elementary OS",
+            "Version": null,
+            "Note": "Mac-like",
+            "Source": "elementary.io",
+            "Color": "#3689E6",
+            "Logo": "elementary",
+            "Strategy": "prepared",
+            "SecureBootOff": false,
+            "Kind": "elementary",
+            "Base": null,
+            "Prefix": null,
+            "Edition": null,
+            "Mode": "Custom Install (Advanced)",
+            "Alongside": null,
+            "Manual": null,
+            "ManualExtra": null,
+            "Steps": null,
+            "Live": null,
+            "LiveFiles": null,
+            "UntriedFile": null,
+            "NoBitLocker": false,
+            "MinGB": 0,
+            "Notes": null,
+            "BootConfigs": [
+              "boot/grub/grub.cfg"
+            ],
+            "BootEdits": {
+              "(?m)^(\\s*linux(?:efi)?\\s+/casper\\S*)(?=\\s|$)(?![^\\n]*\\snopersistent(?:\\s|$))": "$1 nopersistent"
+            },
+            "GrubDir": null,
+            "EspShell": null,
+            "EspLinuxMB": 0,
+            "FullDisk": {
+              "IsoGB": 4,
+              "Configs": [
+                "boot/grub/grub.cfg"
+              ],
+              "Word": "toram",
+              "Edits": {
+                "(?m)^(\\s*linux\\s+/casper[^/\\s]*/\\S+)": "$1 toram"
+              },
+              "Steps": [
+                "Pick your language and keyboard.",
+                "At **Try or Install**, choose **Erase Disk and Install**, then click **Next**.",
+                "At **Select a Drive**, choose **{DISK}**. Leave any other drive alone. Then click **Next**.",
+                "Choose **Don't Encrypt**, or **Enable Drive Encryption** and set a password. The install starts straight after that."
+              ]
+            },
+            "SecondDisk": null,
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "ubuntu",
+      "name": "Ubuntu",
+      "baseline": true,
+      "download": {
+        "provider": "ubuntu",
+        "source": "releases.ubuntu.com",
+        "base": "https://releases.ubuntu.com/26.04/",
+        "prefix": "ubuntu",
+        "edition": null
+      },
+      "restrictions": {
+        "secure_boot_off": false,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "ubuntu",
+            "Name": "Ubuntu",
+            "Version": "26.04 LTS",
+            "Note": "Most popular",
+            "Source": "releases.ubuntu.com",
+            "Color": "#E95420",
+            "Logo": "ubuntu",
+            "Strategy": "freespace",
+            "SecureBootOff": false,
+            "Kind": "ubuntu",
+            "Base": "https://releases.ubuntu.com/26.04/",
+            "Prefix": "ubuntu",
+            "Edition": null,
+            "Mode": null,
+            "Alongside": "Install Ubuntu alongside Windows",
+            "Manual": "Manual installation",
+            "ManualExtra": null,
+            "Steps": null,
+            "Live": null,
+            "LiveFiles": null,
+            "UntriedFile": null,
+            "NoBitLocker": false,
+            "MinGB": 0,
+            "Notes": null,
+            "BootConfigs": [
+              "boot/grub/grub.cfg"
+            ],
+            "BootEdits": {
+              "(?m)^(\\s*linux(?:efi)?\\s+/casper\\S*)(?=\\s|$)(?![^\\n]*\\snopersistent(?:\\s|$))": "$1 nopersistent"
+            },
+            "GrubDir": null,
+            "EspShell": null,
+            "EspLinuxMB": 0,
+            "FullDisk": {
+              "IsoGB": 6,
+              "Configs": [
+                "boot/grub/grub.cfg"
+              ],
+              "Word": "toram",
+              "Edits": {
+                "(?m)^(\\s*linux\\s+/casper[^/\\s]*/\\S+)": "$1 toram"
+              },
+              "Steps": [
+                "Pick your language and keyboard, then start the installer.",
+                "When asked how to install, choose **Erase disk and install Ubuntu**.",
+                "Under **Select drive**, choose **{DISK}**. Leave any other drive alone.",
+                "On **Ready to install**, check that only **{DISK}** is listed under **Erased**, then click **Install**."
+              ]
+            },
+            "SecondDisk": null,
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "mint-cinnamon",
+      "name": "Linux Mint",
+      "baseline": true,
+      "download": {
+        "provider": "mint",
+        "source": "the Linux Mint mirror at kernel.org",
+        "base": null,
+        "prefix": null,
+        "edition": "cinnamon"
+      },
+      "restrictions": {
+        "secure_boot_off": false,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "mint-cinnamon",
+            "Name": "Linux Mint",
+            "Version": null,
+            "Note": "Windows-like",
+            "Source": "the Linux Mint mirror at kernel.org",
+            "Color": "#69B53F",
+            "Logo": "mint",
+            "Strategy": "prepared",
+            "SecureBootOff": false,
+            "Kind": "mint",
+            "Base": null,
+            "Prefix": null,
+            "Edition": "cinnamon",
+            "Mode": "Something else",
+            "Alongside": "Install Linux Mint alongside Windows Boot Manager",
+            "Manual": "Something else",
+            "ManualExtra": null,
+            "Steps": [
+              "Pick your language and keyboard, then click **Continue** until **Installation type**.",
+              "It says you can't create, delete or resize partitions on this disk. That's expected: usbless has already made the partition, from the {GB} GB it set aside.",
+              "In the list, click the {ROOTMB} MB partition, then **Change...**.",
+              "Set **Use as** to **Ext4 journaling file system**, tick **Format the partition**, set **Mount point** to **/** and click **OK**.",
+              "Leave **Device for boot loader installation** as it is, and click **Install Now**. It uses the existing EFI partition by itself.",
+              "Check that only that partition is listed to be formatted as **ext4**, then click **Continue**.",
+              "Don't format any other partition, including the 1 GB **fat32** one next to it, and don't change the **efi** one."
+            ],
+            "Live": null,
+            "LiveFiles": null,
+            "UntriedFile": null,
+            "NoBitLocker": false,
+            "MinGB": 0,
+            "Notes": [
+              "Afterwards this PC starts Linux Mint first. Its menu lists **Windows Boot Manager**, and Windows stays in your PC's boot menu too. The installer also replaces the fallback loader **\\EFI\\Boot\\bootx64.efi** on Windows' EFI partition. Windows' own files there aren't touched."
+            ],
+            "BootConfigs": [
+              "boot/grub/grub.cfg"
+            ],
+            "BootEdits": {
+              "(?m)^(\\s*linux(?:efi)?\\s+/casper\\S*)(?=\\s|$)(?![^\\n]*\\snopersistent(?:\\s|$))": "$1 nopersistent"
+            },
+            "GrubDir": null,
+            "EspShell": null,
+            "EspLinuxMB": 0,
+            "FullDisk": null,
+            "SecondDisk": null,
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "pop",
+      "name": "Pop!_OS",
+      "baseline": true,
+      "download": {
+        "provider": "pop",
+        "source": "pop-os.org",
+        "base": null,
+        "prefix": null,
+        "edition": null
+      },
+      "restrictions": {
+        "secure_boot_off": true,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "pop",
+            "Name": "Pop!_OS",
+            "Version": "24.04",
+            "Note": "Gaming",
+            "Source": "pop-os.org",
+            "Color": "#48B9C7",
+            "Logo": "pop",
+            "Strategy": "prepared",
+            "SecureBootOff": true,
+            "Kind": "pop",
+            "Base": null,
+            "Prefix": null,
+            "Edition": null,
+            "Mode": "Custom (Advanced)",
+            "Alongside": null,
+            "Manual": null,
+            "ManualExtra": null,
+            "Steps": null,
+            "Live": null,
+            "LiveFiles": null,
+            "UntriedFile": null,
+            "NoBitLocker": false,
+            "MinGB": 0,
+            "Notes": null,
+            "BootConfigs": [
+              "boot/grub/grub.cfg"
+            ],
+            "BootEdits": {
+              "(?m)^(\\s*linux(?:efi)?\\s+/casper\\S*)(?=\\s|$)(?![^\\n]*\\snopersistent(?:\\s|$))": "$1 nopersistent"
+            },
+            "GrubDir": null,
+            "EspShell": null,
+            "EspLinuxMB": 0,
+            "FullDisk": null,
+            "SecondDisk": null,
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "zorin",
+      "name": "Zorin OS",
+      "baseline": true,
+      "download": {
+        "provider": "zorin",
+        "source": "the Zorin OS mirror at kernel.org",
+        "base": null,
+        "prefix": null,
+        "edition": null
+      },
+      "restrictions": {
+        "secure_boot_off": false,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "zorin",
+            "Name": "Zorin OS",
+            "Version": null,
+            "Note": "Windows-like",
+            "Source": "the Zorin OS mirror at kernel.org",
+            "Color": "#15A6F0",
+            "Logo": "zorin",
+            "Strategy": "prepared",
+            "SecureBootOff": false,
+            "Kind": "zorin",
+            "Base": null,
+            "Prefix": null,
+            "Edition": null,
+            "Mode": "Something else",
+            "Alongside": "Install Zorin OS alongside Windows Boot Manager",
+            "Manual": "Something else",
+            "ManualExtra": null,
+            "Steps": [
+              "Pick your language and keyboard, then click **Continue** until **Installation type**.",
+              "It says you can't create, delete or resize partitions on this disk. That's expected: usbless has already made the partition, from the {GB} GB it set aside.",
+              "In the list, click the {ROOTMB} MB partition, then **Change...**.",
+              "Set **Use as** to **Ext4 journaling file system**, tick **Format the partition**, set **Mount point** to **/** and click **OK**.",
+              "Leave **Device for boot loader installation** as it is, and click **Install Now**. It uses the existing EFI partition by itself.",
+              "Check that only that partition is listed to be formatted as **ext4**, then click **Continue**.",
+              "Don't format any other partition, including the 1 GB **fat32** one next to it, and don't change the **efi** one."
+            ],
+            "Live": null,
+            "LiveFiles": null,
+            "UntriedFile": null,
+            "NoBitLocker": false,
+            "MinGB": 0,
+            "Notes": [
+              "Afterwards this PC starts Zorin OS first. Its menu lists **Windows Boot Manager**, and Windows stays in your PC's boot menu too. The installer also replaces the fallback loader **\\EFI\\Boot\\bootx64.efi** on Windows' EFI partition. Windows' own files there aren't touched."
+            ],
+            "BootConfigs": [
+              "boot/grub/grub.cfg"
+            ],
+            "BootEdits": {
+              "(?m)^(\\s*linux(?:efi)?\\s+/casper\\S*)(?=\\s|$)(?![^\\n]*\\snopersistent(?:\\s|$))": "$1 nopersistent"
+            },
+            "GrubDir": null,
+            "EspShell": null,
+            "EspLinuxMB": 0,
+            "FullDisk": {
+              "IsoGB": 3,
+              "Configs": [
+                "boot/grub/grub.cfg"
+              ],
+              "Word": "toram",
+              "Edits": {
+                "(?m)^(\\s*linux\\s+/casper[^/\\s]*/\\S+)": "$1 toram"
+              },
+              "Steps": [
+                "Pick your language and keyboard, then start the installer.",
+                "When asked how to install, choose **Erase disk and install Zorin OS**.",
+                "If it lists more than one drive, choose **{DISK}**. Leave any other drive alone.",
+                "Click **Install Now**, check that only **{DISK}** is in the list of changes, then click **Continue**."
+              ]
+            },
+            "SecondDisk": null,
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "fedora",
+      "name": "Fedora Workstation",
+      "baseline": true,
+      "download": {
+        "provider": "fedora",
+        "source": "fedoraproject.org",
+        "base": null,
+        "prefix": null,
+        "edition": null
+      },
+      "restrictions": {
+        "secure_boot_off": false,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "fedora",
+            "Name": "Fedora Workstation",
+            "Version": null,
+            "Note": "Up to date",
+            "Source": "fedoraproject.org",
+            "Color": "#51A2DA",
+            "Logo": "fedora",
+            "Strategy": "freespace",
+            "SecureBootOff": false,
+            "Kind": "fedora",
+            "Base": null,
+            "Prefix": null,
+            "Edition": null,
+            "Mode": null,
+            "Alongside": null,
+            "Manual": "Manual disk configuration",
+            "ManualExtra": null,
+            "Steps": [
+              "On the welcome screen, choose **Not Now**.",
+              "Open the install app from the dock, then pick your language.",
+              "Select the drive with the {GB} GB usbless set aside and choose **Share disk with other operating systems**.",
+              "If it warns that **/boot/efi** is smaller than recommended, carry on: usbless has checked there is room.",
+              "Don't choose **Use entire disk**. The installer is running from this drive."
+            ],
+            "Live": "LiveOS/squashfs.img",
+            "LiveFiles": null,
+            "UntriedFile": null,
+            "NoBitLocker": false,
+            "MinGB": 0,
+            "Notes": null,
+            "BootConfigs": [
+              "boot/grub2/grub.cfg"
+            ],
+            "BootEdits": {
+              "root=live:CDLABEL=\\S+": "root=live:LABEL=USBLINSTALL \"systemd.run=/usr/bin/umount -l /run/initramfs/live\" systemd.run_success_action=none systemd.run_failure_action=none systemd.unit=graphical.target systemd.wants=kernel-command-line.service",
+              "\\s+rd\\.live\\.check": "",
+              "(?m)^[ \\t]*search\\s.*$": "search --no-floppy --label --set=root USBLINSTALL"
+            },
+            "GrubDir": "boot/grub2",
+            "EspShell": null,
+            "EspLinuxMB": 25,
+            "FullDisk": {
+              "IsoGB": 3,
+              "Configs": [],
+              "Word": "rd.live.ram=1",
+              "Edits": {
+                "root=live:LABEL=(\\S+)": "root=live:LABEL=$1 rd.live.ram=1"
+              },
+              "Steps": [
+                "On the welcome screen, choose **Not Now**.",
+                "Open the install app from the dock, then pick your language.",
+                "Select **{DISK}** and choose **Use entire disk**. Leave any other drive alone.",
+                "On the last screen, check it names only **{DISK}**, then click **Erase data and install**."
+              ]
+            },
+            "SecondDisk": {
+              "Notes": [
+                "Afterwards this PC starts Fedora, from that disk. Its menu lists Windows too."
+              ],
+              "Steps": [
+                "On the welcome screen, choose **Not Now**.",
+                "Open the install app from the dock, then pick your language.",
+                "Select only **{DISK}**, not the disk Windows is on, and choose **Share disk with other operating systems**.",
+                "It makes its own EFI partition on that drive and uses its largest free space, which can be more than the {GB} GB usbless set aside.",
+                "Don't choose **Use entire disk**. The installer is running from this drive."
+              ],
+              "EspLinuxMB": 0
+            },
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "debian",
+      "name": "Debian",
+      "baseline": true,
+      "download": {
+        "provider": "debian",
+        "source": "cdimage.debian.org",
+        "base": null,
+        "prefix": null,
+        "edition": null
+      },
+      "restrictions": {
+        "secure_boot_off": false,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "debian",
+            "Name": "Debian",
+            "Version": null,
+            "Note": "Rock solid",
+            "Source": "cdimage.debian.org",
+            "Color": "#A80030",
+            "Logo": "debian",
+            "Strategy": "freespace",
+            "SecureBootOff": false,
+            "Kind": "debian",
+            "Base": null,
+            "Prefix": null,
+            "Edition": null,
+            "Mode": null,
+            "Alongside": null,
+            "Manual": "Manual partitioning",
+            "ManualExtra": "Also click the existing **EFI System Partition**, choose Edit, set the mount point to **/boot/efi** and keep it unformatted.",
+            "Steps": [
+              "At the menu that appears after restarting, press Enter on **Live system**. It waits until you do.",
+              "On the desktop, open **Install Debian**, then pick your language and keyboard.",
+              "When asked about partitions, choose **Manual partitioning**. If it lists several drives, pick the one with the {GB} GB of free space.",
+              "Click the {GB} GB of **Free Space**, click **Create** and make an **ext4** partition mounted at **/**.",
+              "Click the existing **EFI System Partition**, click **Edit**, set the mount point to **/boot/efi** and keep its contents. If the installer then says this partition is small, click **OK**: there is room.",
+              "Don't choose **Erase disk**. The installer is running from this drive."
+            ],
+            "Live": "live/filesystem.squashfs",
+            "LiveFiles": null,
+            "UntriedFile": null,
+            "NoBitLocker": false,
+            "MinGB": 0,
+            "Notes": null,
+            "BootConfigs": null,
+            "BootEdits": null,
+            "GrubDir": null,
+            "EspShell": null,
+            "EspLinuxMB": 0,
+            "FullDisk": {
+              "IsoGB": 3,
+              "Configs": [
+                "boot/grub/grub.cfg"
+              ],
+              "Word": "toram",
+              "Edits": {
+                "(?m)^(\\s*linux\\s+/live/\\S+)": "$1 toram"
+              },
+              "Steps": [
+                "At the menu that appears after restarting, press Enter on **Live system**. It waits until you do, then takes a few minutes to copy itself to memory.",
+                "On the desktop, open **Install Debian**, then pick your language and keyboard.",
+                "At **Partitions**, choose **{DISK}** under **Select storage device**, then choose **Erase disk**.",
+                "Fill in your name and password. Check the **Summary** names only that drive, then click **Install**."
+              ]
+            },
+            "SecondDisk": null,
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "cachyos",
+      "name": "CachyOS",
+      "baseline": true,
+      "download": {
+        "provider": "cachyos",
+        "source": "cachyos.org",
+        "base": null,
+        "prefix": null,
+        "edition": null
+      },
+      "restrictions": {
+        "secure_boot_off": true,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "cachyos",
+            "Name": "CachyOS",
+            "Version": null,
+            "Note": "Fast, for gaming",
+            "Source": "cachyos.org",
+            "Color": "#008066",
+            "Logo": "cachyos",
+            "Strategy": "freespace",
+            "SecureBootOff": true,
+            "Kind": "cachyos",
+            "Base": null,
+            "Prefix": null,
+            "Edition": null,
+            "Mode": null,
+            "Alongside": null,
+            "Manual": "Manual partitioning",
+            "ManualExtra": "Also click the existing **EFI System Partition**, choose Edit, set the mount point to **/boot/efi** and keep it unformatted.",
+            "Steps": [
+              "In the CachyOS Hello window, click **Launch installer**, then pick your language and keyboard.",
+              "On the **Bootloader** screen, choose **GRUB**.",
+              "When asked about partitions, choose **Manual partitioning**. If it lists several drives, pick the one with the {GB} GB of free space.",
+              "Click the {GB} GB of **Free Space**, click **Create** and make an **ext4** partition mounted at **/**.",
+              "Click the existing **EFI System Partition**, click **Edit**, set the mount point to **/boot/efi** and keep its contents. If the installer then says this partition is small, click **OK**: there is room.",
+              "Don't choose **Erase disk**. The installer is running from this drive."
+            ],
+            "Live": "arch/x86_64/airootfs.sfs",
+            "LiveFiles": null,
+            "UntriedFile": null,
+            "NoBitLocker": false,
+            "MinGB": 0,
+            "Notes": null,
+            "BootConfigs": [
+              "boot/grub/grub.cfg"
+            ],
+            "BootEdits": {
+              "archisosearchuuid=\\S+": "archisolabel=USBLINSTALL"
+            },
+            "GrubDir": "boot/grub",
+            "EspShell": null,
+            "EspLinuxMB": 0,
+            "FullDisk": null,
+            "SecondDisk": null,
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "arch",
+      "name": "Arch Linux",
+      "baseline": true,
+      "download": {
+        "provider": "arch",
+        "source": "geo.mirror.pkgbuild.com",
+        "base": null,
+        "prefix": null,
+        "edition": null
+      },
+      "restrictions": {
+        "secure_boot_off": true,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "arch",
+            "Name": "Arch Linux",
+            "Version": null,
+            "Note": "Do it yourself",
+            "Source": "geo.mirror.pkgbuild.com",
+            "Color": "#1793D1",
+            "Logo": "arch",
+            "Strategy": "freespace",
+            "SecureBootOff": true,
+            "Kind": "arch",
+            "Base": null,
+            "Prefix": null,
+            "Edition": null,
+            "Mode": null,
+            "Alongside": null,
+            "Manual": "Manual Partitioning",
+            "ManualExtra": "Also click the existing **EFI System Partition**, choose Edit, set the mount point to **/boot/efi** and keep it unformatted.",
+            "Steps": [
+              "Arch has no graphical installer. It starts at a text prompt, and it needs the internet: plug in a network cable, or connect to Wi-Fi with **iwctl**.",
+              "Type **archinstall** and press Enter.",
+              "Open **Disk configuration**, then **Partitioning**. Choose **Manual Partitioning** and select the drive with the free space.",
+              "Select the {GB} GB of free space and make an **ext4** partition with the mountpoint **/**.",
+              "Select the existing **fat32** EFI partition, choose **Assign mountpoint** and type **/boot/efi**. Keep it unformatted.",
+              "Under **Bootloader**, choose **Grub**. Set up the rest of the menu as you like, including a Profile if you want a desktop, then choose **Install**.",
+              "Don't change any other partition. The installer is running from this drive."
+            ],
+            "Live": "arch/x86_64/airootfs.sfs",
+            "LiveFiles": null,
+            "UntriedFile": null,
+            "NoBitLocker": false,
+            "MinGB": 0,
+            "Notes": null,
+            "BootConfigs": [
+              "loader/entries/*.conf"
+            ],
+            "BootEdits": {
+              "archisosearchuuid=\\S+": "archisolabel=USBLINSTALL"
+            },
+            "GrubDir": null,
+            "EspShell": "shellx64.efi",
+            "EspLinuxMB": 20,
+            "FullDisk": {
+              "IsoGB": 2,
+              "Configs": [],
+              "Word": "copytoram",
+              "Edits": {
+                "(archisobasedir=\\S+)": "$1 copytoram"
+              },
+              "Steps": [
+                "Arch has no graphical installer. It starts at a text prompt, and it needs the internet: plug in a network cable, or connect to Wi-Fi with **iwctl**.",
+                "Type **archinstall** and press Enter.",
+                "Open **Disk configuration**, then **Partitioning**. Choose **Use a best-effort default partition layout**, select **{DISK}** and choose **ext4**. This wipes that drive.",
+                "Under **Bootloader**, choose **Grub**. Set up the rest of the menu as you like, including a Profile if you want a desktop, then choose **Install**."
+              ]
+            },
+            "SecondDisk": {
+              "Notes": [
+                "Afterwards this PC starts Arch's GRUB from Windows' EFI partition, and Arch itself from {DISK}. Windows stays in your PC's boot menu."
+              ],
+              "Steps": [
+                "Arch has no graphical installer. It starts at a text prompt, and it needs the internet: plug in a network cable, or connect to Wi-Fi with **iwctl**.",
+                "Type **archinstall** and press Enter.",
+                "Open **Disk configuration**, then **Partitioning**. Choose **Manual Partitioning**.",
+                "Under **Select disks for the installation**, press Space on **{DISK}** and on the disk Windows is on, so both have an **X**, then press Enter.",
+                "On **{DISK}**, select the {GB} GB of free space and make an **ext4** partition with the mountpoint **/**.",
+                "On the disk Windows is on, select the existing **fat32** EFI partition, choose **Assign mountpoint** and type **/boot/efi**. Keep it unformatted.",
+                "Under **Bootloader**, choose **Grub**. Set up the rest of the menu as you like, including a Profile if you want a desktop, then choose **Install**.",
+                "Don't change any other partition. The installer is running from {DISK}, and Windows needs the rest of its disk."
+              ]
+            },
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "omarchy",
+      "name": "Omarchy",
+      "baseline": true,
+      "download": {
+        "provider": "omarchy",
+        "source": "omarchy.org",
+        "base": null,
+        "prefix": null,
+        "edition": null
+      },
+      "restrictions": {
+        "secure_boot_off": true,
+        "bitlocker_fully_off": true
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "omarchy",
+            "Name": "Omarchy",
+            "Version": null,
+            "Note": "Hyprland, ready to go",
+            "Source": "omarchy.org",
+            "Color": "#9ECE6A",
+            "Logo": "omarchy",
+            "Strategy": "freespace",
+            "SecureBootOff": true,
+            "Kind": "omarchy",
+            "Base": null,
+            "Prefix": null,
+            "Edition": null,
+            "Mode": null,
+            "Alongside": null,
+            "Manual": "Free space install",
+            "ManualExtra": null,
+            "Steps": [
+              "Press **Return** to start, then choose your keyboard.",
+              "Make your account. Your password also unlocks the disk if Omarchy encrypts it. Name, email and hostname can be left empty.",
+              "Under **Select install disk**, choose the disk Windows is on.",
+              "Under **Select installation mode**, press Down to reach **Free space install (alongside existing data)**, then Return. **Don't choose Full disk install**, where the cursor starts: it erases Windows.",
+              "It should say **Install Omarchy in the {GB} GB of free space**, or close to that. Choose **Yes, install**. To install without encryption, press **Ctrl+C** first.",
+              "When it has finished, choose **Reboot Now**."
+            ],
+            "Live": "arch/x86_64/airootfs.sfs",
+            "LiveFiles": "arch\\x86_64\\airootfs.*",
+            "UntriedFile": "arch\\x86_64\\omarchy-root.img.zst",
+            "NoBitLocker": true,
+            "MinGB": 33,
+            "Notes": [
+              "Afterwards this PC starts Omarchy, and its menu doesn't list Windows. To get to Windows, use your PC's boot menu, or run **limine-scan** in Omarchy to add it to the menu."
+            ],
+            "BootConfigs": [
+              "boot/grub/grub.cfg"
+            ],
+            "BootEdits": {
+              "archisosearchuuid=\\S+": "archisolabel=USBLLIVE \"systemd.run=umount -l /run/archiso/bootmnt\" systemd.run_success_action=none systemd.run_failure_action=none systemd.unit=multi-user.target systemd.wants=kernel-command-line.service"
+            },
+            "GrubDir": "boot/grub",
+            "EspShell": null,
+            "EspLinuxMB": 0,
+            "FullDisk": {
+              "IsoGB": 7,
+              "Configs": [],
+              "Word": "copytoram",
+              "Edits": {
+                "(archisobasedir=\\S+)": "$1 copytoram"
+              },
+              "Steps": [
+                "Press **Return** to start, then choose your keyboard.",
+                "Make your account. Your password also unlocks the disk if Omarchy encrypts it. Name, email and hostname can be left empty.",
+                "Under **Select install disk**, choose **{DISK}**. Leave any other drive alone.",
+                "Under **Select installation mode**, choose **Full disk install**, where the cursor starts.",
+                "At **Confirm overwriting**, choose **Yes, install**. To install without encryption, press **Ctrl+C** first.",
+                "When it has finished, choose **Reboot Now**."
+              ]
+            },
+            "SecondDisk": {
+              "Notes": [
+                "Afterwards this PC starts Omarchy, from that disk. To get to Windows, use your PC's boot menu."
+              ],
+              "Steps": [
+                "Press **Return** to start, then choose your keyboard.",
+                "Make your account. Your password also unlocks the disk if Omarchy encrypts it. Name, email and hostname can be left empty.",
+                "Under **Select install disk**, press Down to reach **{DISK}**, then Return. **Don't choose the disk Windows is on.**",
+                "Under **Select installation mode**, press Down to reach **Free space install (alongside existing data)**, then Return. **Don't choose Full disk install**, where the cursor starts: it erases that disk.",
+                "It should say **Install Omarchy in the** and at least {GB} GB **of free space**. It uses the largest free space on the disk, which can be more than usbless set aside. Check it says **Confirm installing on** that disk, then choose **Yes, install**. To install without encryption, press **Ctrl+C** first.",
+                "When it has finished, choose **Reboot Now**."
+              ]
+            },
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "ultramarine",
+      "name": "Ultramarine",
+      "baseline": true,
+      "download": {
+        "provider": "ultramarine",
+        "source": "images.fyralabs.com",
+        "base": null,
+        "prefix": null,
+        "edition": "gnome"
+      },
+      "restrictions": {
+        "secure_boot_off": false,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "ultramarine",
+            "Name": "Ultramarine",
+            "Version": null,
+            "Note": "Fedora made easy",
+            "Source": "images.fyralabs.com",
+            "Color": "#00078F",
+            "Logo": "ultramarine",
+            "Strategy": "freespace",
+            "SecureBootOff": false,
+            "Kind": "ultramarine",
+            "Base": null,
+            "Prefix": null,
+            "Edition": "gnome",
+            "Mode": null,
+            "Alongside": null,
+            "Manual": "Manual disk configuration",
+            "ManualExtra": null,
+            "Steps": [
+              "On the welcome screen, choose **Not Now**.",
+              "Open the install app from the dock, then pick your language.",
+              "Select the drive with the {GB} GB usbless set aside and choose **Share disk with other operating systems**.",
+              "If it warns that **/boot/efi** is smaller than recommended, carry on: usbless has checked there is room.",
+              "Don't choose **Use entire disk**. The installer is running from this drive."
+            ],
+            "Live": "LiveOS/squashfs.img",
+            "LiveFiles": null,
+            "UntriedFile": null,
+            "NoBitLocker": false,
+            "MinGB": 0,
+            "Notes": null,
+            "BootConfigs": [
+              "boot/grub/grub.cfg"
+            ],
+            "BootEdits": {
+              "root=live:CDLABEL=\\S+": "root=live:LABEL=USBLINSTALL \"systemd.run=/usr/bin/umount -l /run/initramfs/live\" systemd.run_success_action=none systemd.run_failure_action=none systemd.unit=graphical.target systemd.wants=kernel-command-line.service",
+              "\\s+rd\\.live\\.check": "",
+              "(?m)^[ \\t]*search\\s.*$": "search --no-floppy --label --set=root USBLINSTALL"
+            },
+            "GrubDir": "boot/grub",
+            "EspShell": null,
+            "EspLinuxMB": 25,
+            "FullDisk": {
+              "IsoGB": 4,
+              "Configs": [],
+              "Word": "rd.live.ram=1",
+              "Edits": {
+                "root=live:LABEL=(\\S+)": "root=live:LABEL=$1 rd.live.ram=1"
+              },
+              "Steps": [
+                "On the welcome screen, choose **Not Now**.",
+                "Open the install app from the dock, then pick your language.",
+                "Select **{DISK}** and choose **Use entire disk**. Leave any other drive alone.",
+                "On the last screen, check it names only **{DISK}**, then click **Erase data and install**."
+              ]
+            },
+            "SecondDisk": {
+              "Notes": [
+                "Afterwards this PC starts Ultramarine, from that disk, and its first start opens its own setup, beginning with **Language**."
+              ],
+              "Steps": [
+                "On the welcome screen, choose **Not Now**.",
+                "Open the install app from the dock, then pick your language.",
+                "Select only **{DISK}**, not the disk Windows is on, and choose **Share disk with other operating systems**.",
+                "It makes its own EFI partition on that drive and uses its largest free space, which can be more than the {GB} GB usbless set aside.",
+                "Don't choose **Use entire disk**. The installer is running from this drive."
+              ],
+              "EspLinuxMB": 0
+            },
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "ubuntu-budgie",
+      "name": "Ubuntu Budgie",
+      "baseline": true,
+      "download": {
+        "provider": "ubuntu",
+        "source": "cdimage.ubuntu.com",
+        "base": "https://cdimage.ubuntu.com/ubuntu-budgie/releases/26.04/release/",
+        "prefix": "ubuntu-budgie",
+        "edition": null
+      },
+      "restrictions": {
+        "secure_boot_off": false,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "ubuntu-budgie",
+            "Name": "Ubuntu Budgie",
+            "Version": "26.04 LTS",
+            "Note": "Dock at the bottom",
+            "Source": "cdimage.ubuntu.com",
+            "Color": "#404552",
+            "Logo": "ubuntu-budgie",
+            "Strategy": "freespace",
+            "SecureBootOff": false,
+            "Kind": "ubuntu",
+            "Base": "https://cdimage.ubuntu.com/ubuntu-budgie/releases/26.04/release/",
+            "Prefix": "ubuntu-budgie",
+            "Edition": null,
+            "Mode": null,
+            "Alongside": "Install Ubuntu Budgie alongside Windows",
+            "Manual": "Manual installation",
+            "ManualExtra": null,
+            "Steps": null,
+            "Live": null,
+            "LiveFiles": null,
+            "UntriedFile": null,
+            "NoBitLocker": false,
+            "MinGB": 0,
+            "Notes": null,
+            "BootConfigs": [
+              "boot/grub/grub.cfg"
+            ],
+            "BootEdits": {
+              "(?m)^(\\s*linux(?:efi)?\\s+/casper\\S*)(?=\\s|$)(?![^\\n]*\\snopersistent(?:\\s|$))": "$1 nopersistent"
+            },
+            "GrubDir": null,
+            "EspShell": null,
+            "EspLinuxMB": 0,
+            "FullDisk": {
+              "IsoGB": 4,
+              "Configs": [
+                "boot/grub/grub.cfg"
+              ],
+              "Word": "toram",
+              "Edits": {
+                "(?m)^(\\s*linux\\s+/casper[^/\\s]*/\\S+)": "$1 toram"
+              },
+              "Steps": [
+                "Pick your language and keyboard, then start the installer.",
+                "When asked how to install, choose the one that starts **Erase disk and install**.",
+                "Under **Select drive**, choose **{DISK}**. Leave any other drive alone.",
+                "On **Ready to install**, check that only **{DISK}** is listed under **Erased**, then click **Install**."
+              ]
+            },
+            "SecondDisk": null,
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "xubuntu",
+      "name": "Xubuntu",
+      "baseline": true,
+      "download": {
+        "provider": "ubuntu",
+        "source": "cdimage.ubuntu.com",
+        "base": "https://cdimage.ubuntu.com/xubuntu/releases/26.04/release/",
+        "prefix": "xubuntu",
+        "edition": null
+      },
+      "restrictions": {
+        "secure_boot_off": false,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "xubuntu",
+            "Name": "Xubuntu",
+            "Version": "26.04 LTS",
+            "Note": "Lightweight",
+            "Source": "cdimage.ubuntu.com",
+            "Color": "#0044AA",
+            "Logo": "xubuntu",
+            "Strategy": "freespace",
+            "SecureBootOff": false,
+            "Kind": "ubuntu",
+            "Base": "https://cdimage.ubuntu.com/xubuntu/releases/26.04/release/",
+            "Prefix": "xubuntu",
+            "Edition": null,
+            "Mode": null,
+            "Alongside": "Install Xubuntu alongside Windows",
+            "Manual": "Manual installation",
+            "ManualExtra": null,
+            "Steps": null,
+            "Live": null,
+            "LiveFiles": null,
+            "UntriedFile": null,
+            "NoBitLocker": false,
+            "MinGB": 0,
+            "Notes": null,
+            "BootConfigs": [
+              "boot/grub/grub.cfg"
+            ],
+            "BootEdits": {
+              "(?m)^(\\s*linux(?:efi)?\\s+/casper\\S*)(?=\\s|$)(?![^\\n]*\\snopersistent(?:\\s|$))": "$1 nopersistent"
+            },
+            "GrubDir": null,
+            "EspShell": null,
+            "EspLinuxMB": 0,
+            "FullDisk": {
+              "IsoGB": 5,
+              "Configs": [
+                "boot/grub/grub.cfg"
+              ],
+              "Word": "toram",
+              "Edits": {
+                "(?m)^(\\s*linux\\s+/casper[^/\\s]*/\\S+)": "$1 toram"
+              },
+              "Steps": [
+                "Pick your language and keyboard, then start the installer.",
+                "When asked how to install, choose the one that starts **Erase disk and install**.",
+                "Under **Select drive**, choose **{DISK}**. Leave any other drive alone.",
+                "On **Ready to install**, check that only **{DISK}** is listed under **Erased**, then click **Install**."
+              ]
+            },
+            "SecondDisk": null,
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "lubuntu",
+      "name": "Lubuntu",
+      "baseline": true,
+      "download": {
+        "provider": "ubuntu",
+        "source": "cdimage.ubuntu.com",
+        "base": "https://cdimage.ubuntu.com/lubuntu/releases/26.04/release/",
+        "prefix": "lubuntu",
+        "edition": null
+      },
+      "restrictions": {
+        "secure_boot_off": false,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "lubuntu",
+            "Name": "Lubuntu",
+            "Version": "26.04 LTS",
+            "Note": "Lightest",
+            "Source": "cdimage.ubuntu.com",
+            "Color": "#0068C8",
+            "Logo": "lubuntu",
+            "Strategy": "freespace",
+            "SecureBootOff": false,
+            "Kind": "ubuntu",
+            "Base": "https://cdimage.ubuntu.com/lubuntu/releases/26.04/release/",
+            "Prefix": "lubuntu",
+            "Edition": null,
+            "Mode": null,
+            "Alongside": null,
+            "Manual": "Manual partitioning",
+            "ManualExtra": "Also click the existing **EFI System Partition**, choose Edit, set the mount point to **/boot/efi** and keep it unformatted.",
+            "Steps": null,
+            "Live": null,
+            "LiveFiles": null,
+            "UntriedFile": null,
+            "NoBitLocker": false,
+            "MinGB": 0,
+            "Notes": null,
+            "BootConfigs": [
+              "boot/grub/grub.cfg"
+            ],
+            "BootEdits": {
+              "(?m)^(\\s*linux(?:efi)?\\s+/casper\\S*)(?=\\s|$)(?![^\\n]*\\snopersistent(?:\\s|$))": "$1 nopersistent"
+            },
+            "GrubDir": null,
+            "EspShell": null,
+            "EspLinuxMB": 0,
+            "FullDisk": null,
+            "SecondDisk": null,
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "ubuntucinnamon",
+      "name": "Ubuntu Cinnamon",
+      "baseline": true,
+      "download": {
+        "provider": "ubuntu",
+        "source": "cdimage.ubuntu.com",
+        "base": "https://cdimage.ubuntu.com/ubuntucinnamon/releases/26.04/release/",
+        "prefix": "ubuntucinnamon",
+        "edition": null
+      },
+      "restrictions": {
+        "secure_boot_off": false,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "ubuntucinnamon",
+            "Name": "Ubuntu Cinnamon",
+            "Version": "26.04 LTS",
+            "Note": "Windows-like layout",
+            "Source": "cdimage.ubuntu.com",
+            "Color": "#DD682A",
+            "Logo": "ubuntucinnamon",
+            "Strategy": "freespace",
+            "SecureBootOff": false,
+            "Kind": "ubuntu",
+            "Base": "https://cdimage.ubuntu.com/ubuntucinnamon/releases/26.04/release/",
+            "Prefix": "ubuntucinnamon",
+            "Edition": null,
+            "Mode": null,
+            "Alongside": "Install Ubuntu Cinnamon alongside Windows",
+            "Manual": "Manual installation",
+            "ManualExtra": null,
+            "Steps": null,
+            "Live": null,
+            "LiveFiles": null,
+            "UntriedFile": null,
+            "NoBitLocker": false,
+            "MinGB": 0,
+            "Notes": null,
+            "BootConfigs": [
+              "boot/grub/grub.cfg"
+            ],
+            "BootEdits": {
+              "(?m)^(\\s*linux(?:efi)?\\s+/casper\\S*)(?=\\s|$)(?![^\\n]*\\snopersistent(?:\\s|$))": "$1 nopersistent"
+            },
+            "GrubDir": null,
+            "EspShell": null,
+            "EspLinuxMB": 0,
+            "FullDisk": {
+              "IsoGB": 6,
+              "Configs": [
+                "boot/grub/grub.cfg"
+              ],
+              "Word": "toram",
+              "Edits": {
+                "(?m)^(\\s*linux\\s+/casper[^/\\s]*/\\S+)": "$1 toram"
+              },
+              "Steps": [
+                "Pick your language and keyboard, then start the installer.",
+                "When asked how to install, choose the one that starts **Erase disk and install**.",
+                "Under **Select drive**, choose **{DISK}**. Leave any other drive alone.",
+                "On **Ready to install**, check that only **{DISK}** is listed under **Erased**, then click **Install**."
+              ]
+            },
+            "SecondDisk": null,
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "ubuntu-unity",
+      "name": "Ubuntu Unity",
+      "baseline": true,
+      "download": {
+        "provider": "ubuntu",
+        "source": "cdimage.ubuntu.com",
+        "base": "https://cdimage.ubuntu.com/ubuntu-unity/releases/26.04/release/",
+        "prefix": "ubuntu-unity",
+        "edition": null
+      },
+      "restrictions": {
+        "secure_boot_off": false,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "ubuntu-unity",
+            "Name": "Ubuntu Unity",
+            "Version": "26.04 LTS",
+            "Note": "Classic Ubuntu",
+            "Source": "cdimage.ubuntu.com",
+            "Color": "#5A06C3",
+            "Logo": "ubuntu-unity",
+            "Strategy": "freespace",
+            "SecureBootOff": false,
+            "Kind": "ubuntu",
+            "Base": "https://cdimage.ubuntu.com/ubuntu-unity/releases/26.04/release/",
+            "Prefix": "ubuntu-unity",
+            "Edition": null,
+            "Mode": null,
+            "Alongside": "Install Ubuntu Unity alongside Windows",
+            "Manual": "Manual installation",
+            "ManualExtra": null,
+            "Steps": null,
+            "Live": null,
+            "LiveFiles": null,
+            "UntriedFile": null,
+            "NoBitLocker": false,
+            "MinGB": 0,
+            "Notes": null,
+            "BootConfigs": [
+              "boot/grub/grub.cfg"
+            ],
+            "BootEdits": {
+              "(?m)^(\\s*linux(?:efi)?\\s+/casper\\S*)(?=\\s|$)(?![^\\n]*\\snopersistent(?:\\s|$))": "$1 nopersistent"
+            },
+            "GrubDir": null,
+            "EspShell": null,
+            "EspLinuxMB": 0,
+            "FullDisk": null,
+            "SecondDisk": null,
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "mint-xfce",
+      "name": "Linux Mint Xfce",
+      "baseline": true,
+      "download": {
+        "provider": "mint",
+        "source": "the Linux Mint mirror at kernel.org",
+        "base": null,
+        "prefix": null,
+        "edition": "xfce"
+      },
+      "restrictions": {
+        "secure_boot_off": false,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "mint-xfce",
+            "Name": "Linux Mint Xfce",
+            "Version": null,
+            "Note": "Lighter Mint",
+            "Source": "the Linux Mint mirror at kernel.org",
+            "Color": "#69B53F",
+            "Logo": "mint",
+            "Strategy": "prepared",
+            "SecureBootOff": false,
+            "Kind": "mint",
+            "Base": null,
+            "Prefix": null,
+            "Edition": "xfce",
+            "Mode": "Something else",
+            "Alongside": "Install Linux Mint alongside Windows Boot Manager",
+            "Manual": "Something else",
+            "ManualExtra": null,
+            "Steps": [
+              "Pick your language and keyboard, then click **Continue** until **Installation type**.",
+              "It says you can't create, delete or resize partitions on this disk. That's expected: usbless has already made the partition, from the {GB} GB it set aside.",
+              "In the list, click the {ROOTMB} MB partition, then **Change...**.",
+              "Set **Use as** to **Ext4 journaling file system**, tick **Format the partition**, set **Mount point** to **/** and click **OK**.",
+              "Leave **Device for boot loader installation** as it is, and click **Install Now**. It uses the existing EFI partition by itself.",
+              "Check that only that partition is listed to be formatted as **ext4**, then click **Continue**.",
+              "Don't format any other partition, including the 1 GB **fat32** one next to it, and don't change the **efi** one."
+            ],
+            "Live": null,
+            "LiveFiles": null,
+            "UntriedFile": null,
+            "NoBitLocker": false,
+            "MinGB": 0,
+            "Notes": [
+              "Afterwards this PC starts Linux Mint Xfce first. Its menu lists **Windows Boot Manager**, and Windows stays in your PC's boot menu too. The installer also replaces the fallback loader **\\EFI\\Boot\\bootx64.efi** on Windows' EFI partition. Windows' own files there aren't touched."
+            ],
+            "BootConfigs": [
+              "boot/grub/grub.cfg"
+            ],
+            "BootEdits": {
+              "(?m)^(\\s*linux(?:efi)?\\s+/casper\\S*)(?=\\s|$)(?![^\\n]*\\snopersistent(?:\\s|$))": "$1 nopersistent"
+            },
+            "GrubDir": null,
+            "EspShell": null,
+            "EspLinuxMB": 0,
+            "FullDisk": null,
+            "SecondDisk": null,
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "mint-mate",
+      "name": "Linux Mint MATE",
+      "baseline": true,
+      "download": {
+        "provider": "mint",
+        "source": "the Linux Mint mirror at kernel.org",
+        "base": null,
+        "prefix": null,
+        "edition": "mate"
+      },
+      "restrictions": {
+        "secure_boot_off": false,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "mint-mate",
+            "Name": "Linux Mint MATE",
+            "Version": null,
+            "Note": "Traditional",
+            "Source": "the Linux Mint mirror at kernel.org",
+            "Color": "#69B53F",
+            "Logo": "mint",
+            "Strategy": "prepared",
+            "SecureBootOff": false,
+            "Kind": "mint",
+            "Base": null,
+            "Prefix": null,
+            "Edition": "mate",
+            "Mode": "Something else",
+            "Alongside": "Install Linux Mint alongside Windows Boot Manager",
+            "Manual": "Something else",
+            "ManualExtra": null,
+            "Steps": [
+              "Pick your language and keyboard, then click **Continue** until **Installation type**.",
+              "It says you can't create, delete or resize partitions on this disk. That's expected: usbless has already made the partition, from the {GB} GB it set aside.",
+              "In the list, click the {ROOTMB} MB partition, then **Change...**.",
+              "Set **Use as** to **Ext4 journaling file system**, tick **Format the partition**, set **Mount point** to **/** and click **OK**.",
+              "Leave **Device for boot loader installation** as it is, and click **Install Now**. It uses the existing EFI partition by itself.",
+              "Check that only that partition is listed to be formatted as **ext4**, then click **Continue**.",
+              "Don't format any other partition, including the 1 GB **fat32** one next to it, and don't change the **efi** one."
+            ],
+            "Live": null,
+            "LiveFiles": null,
+            "UntriedFile": null,
+            "NoBitLocker": false,
+            "MinGB": 0,
+            "Notes": [
+              "Afterwards this PC starts Linux Mint MATE first. Its menu lists **Windows Boot Manager**, and Windows stays in your PC's boot menu too. The installer also replaces the fallback loader **\\EFI\\Boot\\bootx64.efi** on Windows' EFI partition. Windows' own files there aren't touched."
+            ],
+            "BootConfigs": [
+              "boot/grub/grub.cfg"
+            ],
+            "BootEdits": {
+              "(?m)^(\\s*linux(?:efi)?\\s+/casper\\S*)(?=\\s|$)(?![^\\n]*\\snopersistent(?:\\s|$))": "$1 nopersistent"
+            },
+            "GrubDir": null,
+            "EspShell": null,
+            "EspLinuxMB": 0,
+            "FullDisk": null,
+            "SecondDisk": null,
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "edubuntu",
+      "name": "Edubuntu",
+      "baseline": true,
+      "download": {
+        "provider": "ubuntu",
+        "source": "cdimage.ubuntu.com",
+        "base": "https://cdimage.ubuntu.com/edubuntu/releases/26.04/release/",
+        "prefix": "edubuntu",
+        "edition": null
+      },
+      "restrictions": {
+        "secure_boot_off": false,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "edubuntu",
+            "Name": "Edubuntu",
+            "Version": "26.04 LTS",
+            "Note": "For students",
+            "Source": "cdimage.ubuntu.com",
+            "Color": "#A30B00",
+            "Logo": "edubuntu",
+            "Strategy": "freespace",
+            "SecureBootOff": false,
+            "Kind": "ubuntu",
+            "Base": "https://cdimage.ubuntu.com/edubuntu/releases/26.04/release/",
+            "Prefix": "edubuntu",
+            "Edition": null,
+            "Mode": null,
+            "Alongside": "Install Edubuntu alongside Windows",
+            "Manual": "Manual installation",
+            "ManualExtra": null,
+            "Steps": null,
+            "Live": null,
+            "LiveFiles": null,
+            "UntriedFile": null,
+            "NoBitLocker": false,
+            "MinGB": 0,
+            "Notes": null,
+            "BootConfigs": [
+              "boot/grub/grub.cfg"
+            ],
+            "BootEdits": {
+              "(?m)^(\\s*linux(?:efi)?\\s+/casper\\S*)(?=\\s|$)(?![^\\n]*\\snopersistent(?:\\s|$))": "$1 nopersistent"
+            },
+            "GrubDir": null,
+            "EspShell": null,
+            "EspLinuxMB": 0,
+            "FullDisk": {
+              "IsoGB": 8,
+              "Configs": [
+                "boot/grub/grub.cfg"
+              ],
+              "Word": "toram",
+              "Edits": {
+                "(?m)^(\\s*linux\\s+/casper[^/\\s]*/\\S+)": "$1 toram"
+              },
+              "Steps": [
+                "Pick your language and keyboard, then start the installer.",
+                "When asked how to install, choose the one that starts **Erase disk and install**.",
+                "Under **Select drive**, choose **{DISK}**. Leave any other drive alone.",
+                "On **Ready to install**, check that only **{DISK}** is listed under **Erased**, then click **Install**."
+              ]
+            },
+            "SecondDisk": null,
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "ubuntustudio",
+      "name": "Ubuntu Studio",
+      "baseline": true,
+      "download": {
+        "provider": "ubuntu",
+        "source": "cdimage.ubuntu.com",
+        "base": "https://cdimage.ubuntu.com/ubuntustudio/releases/26.04/release/",
+        "prefix": "ubuntustudio",
+        "edition": null
+      },
+      "restrictions": {
+        "secure_boot_off": false,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "unvalidated",
+          "recipe": {
+            "Id": "ubuntustudio",
+            "Name": "Ubuntu Studio",
+            "Version": "26.04 LTS",
+            "Note": "For creators",
+            "Source": "cdimage.ubuntu.com",
+            "Color": "#009BF9",
+            "Logo": "ubuntustudio",
+            "Strategy": "freespace",
+            "SecureBootOff": false,
+            "Kind": "ubuntu",
+            "Base": "https://cdimage.ubuntu.com/ubuntustudio/releases/26.04/release/",
+            "Prefix": "ubuntustudio",
+            "Edition": null,
+            "Mode": null,
+            "Alongside": "Install Ubuntu Studio alongside Windows",
+            "Manual": "Manual installation",
+            "ManualExtra": null,
+            "Steps": null,
+            "Live": null,
+            "LiveFiles": null,
+            "UntriedFile": null,
+            "NoBitLocker": false,
+            "MinGB": 0,
+            "Notes": null,
+            "BootConfigs": [
+              "boot/grub/grub.cfg"
+            ],
+            "BootEdits": {
+              "(?m)^(\\s*linux(?:efi)?\\s+/casper\\S*)(?=\\s|$)(?![^\\n]*\\snopersistent(?:\\s|$))": "$1 nopersistent"
+            },
+            "GrubDir": null,
+            "EspShell": null,
+            "EspLinuxMB": 0,
+            "FullDisk": {
+              "IsoGB": 7,
+              "Configs": [
+                "boot/grub/grub.cfg"
+              ],
+              "Word": "toram",
+              "Edits": {
+                "(?m)^(\\s*linux\\s+/casper[^/\\s]*/\\S+)": "$1 toram"
+              },
+              "Steps": [
+                "Pick your language and keyboard, then start the installer.",
+                "When asked how to install, choose the one that starts **Erase disk and install**.",
+                "Under **Select drive**, choose **{DISK}**. Leave any other drive alone.",
+                "On **Ready to install**, check that only **{DISK}** is listed under **Erased**, then click **Install**."
+              ]
+            },
+            "SecondDisk": null,
+            "Refused": null
+          }
+        },
+        "linux": {
+          "implementation": "candidate",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "kubuntu",
+      "name": "Kubuntu",
+      "baseline": false,
+      "download": {
+        "provider": "ubuntu",
+        "source": "https://cdimage.ubuntu.com/kubuntu/releases/"
+      },
+      "restrictions": {
+        "secure_boot_off": null,
+        "bitlocker_fully_off": null
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "planned",
+          "validation": "unvalidated"
+        },
+        "linux": {
+          "implementation": "implemented",
+          "validation": "prepared"
+        }
+      },
+      "evidence": [
+        "docs/validation/kubuntu-26.10-linux-preservation.json"
+      ]
+    },
+    {
+      "id": "fedora-kde",
+      "name": "Fedora KDE Plasma",
+      "baseline": false,
+      "download": {
+        "provider": "fedora",
+        "source": "https://fedoraproject.org/kde/",
+        "edition": "KDE"
+      },
+      "restrictions": {
+        "secure_boot_off": false,
+        "bitlocker_fully_off": false
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "present",
+          "validation": "preservation-recovery-validated",
+          "recipe_source": "platforms/windows/engine/Catalog.ps1:fedora-kde"
+        },
+        "linux": {
+          "implementation": "planned",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": [
+        "docs/validation/fedora-kde-44-media.json",
+        "docs/validation/fedora-kde-44-windows-prepared.json",
+        "docs/validation/fedora-kde-44-installer-boot.json",
+        "docs/validation/fedora-kde-44-installed-boot.json",
+        "docs/validation/fedora-kde-44-preservation.json"
+      ]
+    },
+    {
+      "id": "opensuse",
+      "name": "openSUSE",
+      "baseline": false,
+      "download": {
+        "provider": "opensuse",
+        "source": "https://get.opensuse.org/"
+      },
+      "restrictions": {
+        "secure_boot_off": null,
+        "bitlocker_fully_off": null
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "planned",
+          "validation": "unvalidated"
+        },
+        "linux": {
+          "implementation": "planned",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "ubuntu-server",
+      "name": "Ubuntu Server",
+      "baseline": false,
+      "download": {
+        "provider": "ubuntu-server",
+        "source": "https://releases.ubuntu.com/"
+      },
+      "restrictions": {
+        "secure_boot_off": null,
+        "bitlocker_fully_off": null
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "planned",
+          "validation": "unvalidated"
+        },
+        "linux": {
+          "implementation": "planned",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    },
+    {
+      "id": "debian-netinst",
+      "name": "Debian netinst",
+      "baseline": false,
+      "download": {
+        "provider": "debian-netinst",
+        "source": "https://cdimage.debian.org/debian-cd/"
+      },
+      "restrictions": {
+        "secure_boot_off": null,
+        "bitlocker_fully_off": null
+      },
+      "platforms": {
+        "windows": {
+          "implementation": "planned",
+          "validation": "unvalidated"
+        },
+        "linux": {
+          "implementation": "planned",
+          "validation": "unvalidated"
+        }
+      },
+      "evidence": []
+    }
+  ]
+}

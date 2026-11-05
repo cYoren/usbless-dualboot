@@ -1,0 +1,16 @@
+{
+  "case": "fedora-kde-44-windows-plan",
+  "date": "2026-11-02",
+  "vm": "windows-base",
+  "plan_id": "d46687eb15654929ef12f39d62200a2b3160868b37d4abe4df7900d14b4fe010",
+  "disk_guid": "{0383d3f0-1e84-4e59-8c14-b2a1b504ec4f}",
+  "windows_partition_guid": "{afe7c143-06c7-4812-93fe-8bf3defe3c32}",
+  "windows_size_before_bytes": 136047493120,
+  "windows_size_planned_bytes": 104908980224,
+  "installer_size_bytes": 4294967296,
+  "linux_size_gib": 25,
+  "iso_sha256": "c8295961d4c41adbf785a31a17c21a971d3b7415fda72dcad0c11c49577bf03a",
+  "preservation_sentinel_sha256": "185710B65F8518ED5706BFF3DB0B203C09C35916F3B83C403A639E012DFDC088",
+  "snapshot": "windows-before-linux",
+  "result": "read-only plan computed; preparation and installation pending"
+}

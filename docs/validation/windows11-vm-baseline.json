@@ -1,0 +1,24 @@
+{
+  "case": "windows11-vm-baseline",
+  "date": "2026-11-02",
+  "guest": "Microsoft Windows 11 Pro",
+  "vm": "windows-base",
+  "manufacturer": "USBlessLab",
+  "model": "DisposableVM",
+  "system_disk_serial": "USBDBLABSYSTEM",
+  "system_disk_bytes": 137438953472,
+  "partition_style": "GPT",
+  "preservation_sentinel_sha256": "185710B65F8518ED5706BFF3DB0B203C09C35916F3B83C403A639E012DFDC088",
+  "checks": {
+    "windows_installed_and_booted": true,
+    "automatic_local_account_logon": true,
+    "authenticated_vm_agent_responded": true,
+    "tpm_configured": true,
+    "secure_boot_capable_firmware": true
+  },
+  "limits": {
+    "secure_boot_enabled": "not claimed; keys were not enrolled",
+    "app_preparation_and_cleanup": "pending",
+    "linux_installation": "pending"
+  }
+}

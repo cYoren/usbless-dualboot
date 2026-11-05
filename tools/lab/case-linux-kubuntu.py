@@ -1,0 +1,234 @@
+#!/usr/bin/env python3
+"""Fixed Kubuntu installation case, ONLY inside a separately identified disposable clone.
+
+The prepare step deliberately replaces the clone's Windows/WinRE partitions with
+lab media storage. It never runs in the original preservation VM. Fedora, its data,
+boot partition and ESP are the incumbent system for this new, independent case.
+"""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import uuid
+
+ORIGINAL_VM = '23f093f6-8fb4-42cc-bd37-068295d8c8ae'
+DISK_GUID = '0383d3f0-1e84-4e59-8c14-b2a1b504ec4f'
+ROOT_GUID = 'da255634-cd51-4db0-b4c1-07e2e195f6c2'
+WINDOWS_GUID = 'afe7c143-06c7-4812-93fe-8bf3defe3c32'
+RECOVERY_GUID = 'fbfedaf4-c5c2-40b9-a9ef-5c255165415e'
+EXPECTED = {
+    '196ef89b-59df-4668-92fd-31624e068f62': (1048576, 536870912),
+    'c4147001-2d51-48cc-82fa-9268139fbd1e': (537919488, 16777216),
+    WINDOWS_GUID: (554696704, 109203947520),
+    '53f33539-4c82-40b7-80fd-e739ab190d02': (109758644224, 2147483648),
+    ROOT_GUID: (111906127872, 24696061952),
+    RECOVERY_GUID: (136602189824, 834666496),
+}
+ISO_NAME = 'kubuntu-26.10-desktop-amd64.iso'
+ISO_BYTES = 5141966848
+ISO_SHA256 = '8160b1d6266dfe1998d183b19713680263c09669f101e0e41cbcf11f50b6f785'
+STATE = Path('/var/lib/USBlessLab/kubuntu')
+MEDIA = Path('/mnt/usbdb-lab-media')
+
+
+def run(*args, input=None, env=None):
+    # No worker timeout: preserve recovery state rather than kill storage writes.
+    result = subprocess.run(list(map(str, args)), input=input, env=env,
+                            capture_output=True, text=True)
+    if result.returncode:
+        raise RuntimeError(f'{args[0]} failed ({result.returncode}): '
+                           f'{result.stdout[-2500:]}\n{result.stderr[-2500:]}')
+    return result.stdout.strip()
+
+
+def guarded_disk(identity):
+    dmi = Path('/sys/class/dmi/id')
+    if (identity == ORIGINAL_VM or str(uuid.UUID(identity)) != identity or
+            (dmi / 'product_serial').read_text().strip() != identity or
+            (dmi / 'sys_vendor').read_text().strip() != 'USBlessLab' or
+            (dmi / 'product_name').read_text().strip() != 'DisposableVM' or os.geteuid() != 0):
+        raise ValueError('A different, explicitly identified disposable clone is required')
+    disks = json.loads(run('lsblk', '-dJ', '-o', 'PATH,SERIAL'))['blockdevices']
+    matches = [d['path'] for d in disks if (d.get('serial') or '').strip() == 'USBDBLABSYSTEM']
+    if len(matches) != 1:
+        raise ValueError('Clone system disk missing or ambiguous')
+    disk = matches[0]
+    if int(run('blockdev', '--getsize64', disk)) != 256 * 1024**3 or run('blockdev', '--getss', disk) != '512':
+        raise ValueError('This fixed case requires the separate 256 GiB clone')
+    table = json.loads(run('sfdisk', '--json', disk))['partitiontable']
+    if table['label'] != 'gpt' or table['id'].strip('{}').lower() != DISK_GUID:
+        raise ValueError('Clone disk GUID differs')
+    root = run('findmnt', '-n', '-o', 'SOURCE', '/').split('[')[0]
+    if run('blkid', '-s', 'PARTUUID', '-o', 'value', root).lower() != ROOT_GUID:
+        raise ValueError('Run this case from the preserved Fedora incumbent')
+    return disk, table
+
+
+def save(report):
+    target = STATE / 'state.json'
+    temp = target.with_suffix('.new')
+    temp.write_text(json.dumps(report, indent=2) + '\n')
+    temp.replace(target)
+    run('sync', '-f', target)
+
+
+def ensure_media(report, table):
+    probe = subprocess.run(['findmnt', '-n', '--mountpoint', str(MEDIA), '-o', 'UUID'],
+                           capture_output=True, text=True)
+    if probe.returncode == 0:
+        if probe.stdout.strip() != report['media_uuid']:
+            raise ValueError('Lab media mount identity differs')
+        return
+    if probe.returncode != 1:
+        raise ValueError('Could not inspect the lab media mount')
+    matches = [p for p in table['partitions'] if p['uuid'].lower() == report['media_partuuid']]
+    if len(matches) != 1 or matches[0]['size'] * 512 != 24 * 1024**3:
+        raise ValueError('Saved lab media partition is missing or changed')
+    device = matches[0]['node']
+    if run('blkid', '-s', 'UUID', '-o', 'value', device) != report['media_uuid']:
+        raise ValueError('Saved lab media filesystem differs')
+    if not MEDIA.is_dir() or any(MEDIA.iterdir()):
+        raise ValueError('Refusing to hide existing files beneath the lab media mount')
+    # Each agent has a private mount namespace; reattach existing storage only.
+    run('mount', 'UUID=' + report['media_uuid'], MEDIA)
+    if run('findmnt', '-n', '--mountpoint', MEDIA, '-o', 'UUID') != report['media_uuid']:
+        raise ValueError('Lab media mount identity differs after mounting')
+
+
+def prepare(identity, disk, table):
+    target = STATE / 'state.json'
+    if target.exists():
+        report = json.loads(target.read_text())
+        if report.get('vm_identity') == identity and report.get('prepared') is True:
+            return dict(already_prepared=True, state=str(target), media_uuid=report['media_uuid'])
+        raise ValueError('Preparation state already exists; inspect it, never reset or repeat writes')
+    actual = {p['uuid'].lower(): (p['start'] * 512, p['size'] * 512) for p in table['partitions']}
+    if actual != EXPECTED:
+        raise ValueError('Clone partition identities/ranges differ from the preserved checkpoint')
+    selected = [p for p in table['partitions'] if p['uuid'].lower() in [WINDOWS_GUID, RECOVERY_GUID]]
+    for part in selected:
+        if run('lsblk', '-n', '-o', 'MOUNTPOINTS', part['node']):
+            raise ValueError('A clone partition selected for replacement is mounted')
+        if list((Path('/sys/class/block') / Path(part['node']).name / 'holders').iterdir()):
+            raise ValueError('A clone partition selected for replacement has holders')
+    STATE.mkdir(parents=True, mode=0o700)
+    (STATE / 'before.json').write_text(json.dumps(table, indent=2) + '\n')
+    (STATE / 'before.sfdisk').write_text(run('sfdisk', '--dump', disk) + '\n')
+    run('sfdisk', '--backup-pt-sectors', '--backup-file', STATE / 'gpt', disk)
+    sentinel = Path('/home/usblab/preserve')
+    report = dict(vm_identity=identity, disk=disk, disk_guid=DISK_GUID,
+                  phase_in_progress='prepare-clone', prepared=False,
+                  preserved_sentinel=hashlib.sha256(sentinel.read_bytes()).hexdigest(),
+                  replaced_partition_guids=[WINDOWS_GUID, RECOVERY_GUID],
+                  media_partuuid=str(uuid.uuid4()))
+    save(report)
+    options = ['--no-reread', '--no-tell-kernel']
+    run('sfdisk', *options, '--relocate', 'gpt-bak-std', disk)
+    numbers = [(Path('/sys/class/block') / Path(p['node']).name / 'partition').read_text().strip()
+               for p in selected]
+    run('sfdisk', *options, '--delete', disk, *numbers)
+    for number in numbers:
+        run('partx', '-d', '--nr', number, disk)
+    run('sfdisk', *options, '--append', '--wipe', 'never', '--wipe-partitions', 'never', disk,
+        input=f'start={554696704 // 512}, size={24 * 1024**3 // 512}, type=L, '
+              f'uuid={report["media_partuuid"]}, name="USBDBLABMEDIA"\n')
+    after = json.loads(run('sfdisk', '--json', disk))['partitiontable']
+    kept = {p['uuid'].lower(): (p['start'] * 512, p['size'] * 512)
+            for p in after['partitions'] if p['uuid'].lower() in EXPECTED}
+    if kept != {k: v for k, v in EXPECTED.items() if k not in [WINDOWS_GUID, RECOVERY_GUID]}:
+        raise ValueError('Incumbent partition ranges changed unexpectedly; keep backups and stop')
+    media = next(p for p in after['partitions'] if p['uuid'].lower() == report['media_partuuid'])
+    if media['start'] * 512 != 554696704 or media['size'] * 512 != 24 * 1024**3:
+        raise ValueError('New lab media range differs')
+    # Resolve the new slot from GPT rather than assuming a partition number.
+    number = str(int(media['node'].removeprefix(disk).removeprefix('p')))
+    run('partx', '-a', '--nr', number, disk)
+    run('udevadm', 'settle')
+    if run('blkid', '-s', 'PARTUUID', '-o', 'value', media['node']).lower() != report['media_partuuid']:
+        raise ValueError('Kernel media identity differs; refusing to format')
+    run('mkfs.ext4', '-F', '-L', 'USBDBLABMEDIA', media['node'])
+    report['media_uuid'] = run('blkid', '-s', 'UUID', '-o', 'value', media['node'])
+    MEDIA.mkdir(parents=True, exist_ok=True)
+    run('mount', 'UUID=' + report['media_uuid'], MEDIA)
+    fstab = Path('/etc/fstab')
+    line = f'UUID={report["media_uuid"]} {MEDIA} ext4 defaults,nofail 0 2\n'
+    with fstab.open('a') as output:
+        output.write('\n# USBless disposable clone lab media\n' + line)
+    (STATE / 'after.json').write_text(json.dumps(after, indent=2) + '\n')
+    if hashlib.sha256(sentinel.read_bytes()).hexdigest() != report['preserved_sentinel']:
+        raise ValueError('Fedora sentinel differs after clone provisioning')
+    report.update(prepared=True, phase_in_progress=None)
+    save(report)
+    return report
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('step', choices=['prepare', 'fetch', 'plan', 'shrink', 'stage', 'boot-installer', 'repair-preview', 'repair'])
+    parser.add_argument('--vm-identity', required=True)
+    parser.add_argument('--media-port', type=int, default=8765)
+    args = parser.parse_args()
+    if not 1024 <= args.media_port <= 65535:
+        raise ValueError('Invalid private media port')
+    disk, table = guarded_disk(args.vm_identity)
+    if args.step == 'prepare':
+        result = prepare(args.vm_identity, disk, table)
+    else:
+        report = json.loads((STATE / 'state.json').read_text())
+        if not report.get('prepared') or report.get('vm_identity') != args.vm_identity:
+            raise ValueError('This clone was not prepared successfully')
+        ensure_media(report, table)
+        iso = MEDIA / ISO_NAME
+        if args.step == 'fetch':
+            if not iso.exists():
+                partial = iso.with_suffix('.iso.part')
+                run('curl', '--fail', '--location', '--continue-at', '-', '--output', partial,
+                    f'http://10.0.2.2:{args.media_port}/kubuntu.iso')
+                with partial.open('rb') as source:
+                    digest = hashlib.file_digest(source, 'sha256').hexdigest()
+                if partial.stat().st_size != ISO_BYTES or digest != ISO_SHA256:
+                    raise ValueError('Kubuntu media does not match the official size/hash')
+                partial.rename(iso)
+            else:
+                with iso.open('rb') as source:
+                    digest = hashlib.file_digest(source, 'sha256').hexdigest()
+                if iso.stat().st_size != ISO_BYTES or digest != ISO_SHA256:
+                    raise ValueError('Existing media differs; never silently replace it')
+            result = dict(iso=str(iso), bytes=ISO_BYTES, sha256=digest)
+        else:
+            engine = Path(__file__).resolve().parents[2] / 'bin/usbless-dualboot'
+            saved_iso = MEDIA / 'source-media' / ISO_NAME
+            if args.step == 'stage' and saved_iso.exists():
+                raise ValueError('Previous source-media relocation exists; inspect instead of repeating staging')
+            env = dict(os.environ, USBDB_CONFIG=str(MEDIA / 'kubuntu-plan.json'),
+                       USBDB_STATE_DIR=str(STATE / 'engine'))
+            commands = {
+                'plan': ['plan', '--add', 'linux', '--iso', str(iso), '--sha256', ISO_SHA256,
+                         '--linux-new-size', '22G', '--installer-size', '12G', '--write'],
+                'shrink': ['shrink'], 'stage': ['stage', '--os', 'linux'],
+                'boot-installer': ['boot', '--installer'],
+                'repair-preview': ['repair-carrier', '--iso', str(saved_iso), '--dry-run'],
+                'repair': ['repair-carrier', '--iso', str(saved_iso), '--confirm-rebuild-installer'],
+            }
+            output = run('bash', engine, *commands[args.step], env=env)
+            (STATE / (args.step + '.log')).write_text(output + '\n')
+            result = dict(step=args.step, log=str(STATE / (args.step + '.log')),
+                          config=json.loads((MEDIA / 'kubuntu-plan.json').read_text()))
+            if args.step == 'stage':
+                # Casper scans filesystem roots for iso-scan/filename. Keep the
+                # original intact in a subdirectory so only the exFAT carrier
+                # matches that path. This makes the large-carrier boot evidence
+                # independent of the ext4 media copy. Boot/cleanup do not need
+                # the original ISO path after a successful verified staging.
+                if result['config'].get('stage_complete') != '1':
+                    raise ValueError('Staging did not complete; retain the original ISO path')
+                saved_iso.parent.mkdir(exist_ok=True)
+                iso.rename(saved_iso)
+                result['preserved_source_iso'] = str(saved_iso)
+    print(json.dumps(result))
+
+
+if __name__ == '__main__':
+    main()

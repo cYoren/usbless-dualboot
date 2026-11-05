@@ -1,0 +1,27 @@
+{
+  "ok": true,
+  "source_sha256": "5ede9a6ce67720ffe56f9c6d5ff0ac27a8df0595a100c02862cfdfdd8c68df5a",
+  "source_dir": "/var/tmp/usbless-engine-acku07wr",
+  "result": {
+    "ok": true,
+    "kind": "VM loop-disk and EFI-file fixture with mocked firmware; not installer boot evidence",
+    "owned_carrier_removed": true,
+    "only_owned_efi_file_removed": true,
+    "foreign_efi_files_preserved": true,
+    "other_partitions_unchanged": true,
+    "root_data_sha256": "af858d584c0d802b1e142f36411d48ce896c62050f39a99ddeaf3662bb060a72",
+    "root_data_preserved": true,
+    "firmware_delete_exact": true,
+    "dry_run_no_writes": true,
+    "confirmation_required": true,
+    "foreign_fs_refused": true,
+    "changed_range_refused": true,
+    "legacy_plan_refused": true,
+    "mounted_carrier_refused": true,
+    "foreign_boot_refused": true,
+    "ambiguous_boot_refused": true,
+    "retired_installer_boot_refused": true,
+    "backup": "/var/tmp/usbless-cleanup.ETnpGg/state/backups/cleanup.LTL25d",
+    "case_dir": "/var/tmp/usbless-cleanup.ETnpGg"
+  }
+}

@@ -26,8 +26,11 @@ This tool performs destructive operations. It is built to fail closed.
   help. It does not repair damaged filesystems, partition tables or missing boot files.
 - **Bad partition table:** restore the GPT backup sectors with `sfdisk`/`dd` from the state dir.
 - **LUKS issues:** restore the header backup with `cryptsetup luksHeaderRestore`.
-- **Installer partition not needed:** confirm both OSes boot, then match its UUID/range and
-  ensure neither OS uses it. Automatic deletion or space reclamation is not implemented.
+- **Installer partition not needed:** confirm both OSes boot, then review
+  `cleanup --installer-only --dry-run` using the same plan. Removal requires a recorded
+  disk/partition/filesystem identity, unused carrier, matching range and owned loader.
+  Older or interrupted plans are refused. Cleanup leaves the freed region available;
+  automatic undo or OS filesystem growth is not implemented.
 
 Read `docs/RECOVERY.md` before attempting a restore. Use `status --json` to find saved progress
 and recovery metadata, and `guide` for installer choices.

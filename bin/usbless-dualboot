@@ -26,6 +26,8 @@ Commands:
   shrink       Shrink Linux storage to free space (guarded).
   stage        Create the FAT32 installer partition, copy ISO, split install.wim.
   boot         Register a one-time UEFI entry, or restore the boot order.
+  cleanup      Remove only the recorded installer after both OSes boot.
+  repair-carrier  Rebuild an owned exFAT Linux installer as NTFS, retaining its plan.
   windows      Add or remove a Windows entry in the boot menu.
   secureboot   Sign the Linux boot chain (sbctl) and guide key enrollment.
   version      Print version.
@@ -63,6 +65,8 @@ main() {
     shrink)     need_lib shrink.sh "$@" ;;
     stage)      need_lib stage.sh "$@" ;;
     boot)       need_lib boot.sh "$@" ;;
+    cleanup)    need_lib cleanup.sh "$@" ;;
+    repair-carrier) need_lib repair-carrier.sh "$@" ;;
     windows)    need_lib windows.sh "$@" ;;
     secureboot) need_lib secureboot.sh "$@" ;;
     version|-V|--version) printf 'usbless-dualboot %s\n' "$VERSION" ;;

@@ -1,0 +1,15 @@
+{
+  "case": "fedora-kde-44-installer-boot",
+  "date": "2026-11-02",
+  "vm": "windows-base",
+  "iso_attached_to_qemu": false,
+  "boot_source": "Internal FAT32 installer partition prepared by USBless on the disposable system disk",
+  "uefi_entry": "Fedora KDE Plasma installer (usbless)",
+  "uefi_loader": "\\EFI\\usbless\\BOOTX64.EFI",
+  "iso_sha256": "c8295961d4c41adbf785a31a17c21a971d3b7415fda72dcad0c11c49577bf03a",
+  "executable_sha256": "37470273d7486298dda08647d3ccb6a3d447feb06bcc293f1d1fd0d5b2449880",
+  "result": "Fedora KDE live desktop and Welcome Center reached",
+  "screenshot": "fedora-kde-44-live-desktop.png",
+  "installed_os_boot": "pending",
+  "secure_boot": "Not enabled; firmware keys were not enrolled"
+}

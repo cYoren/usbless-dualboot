@@ -1,5 +1,7 @@
 # usbless-dualboot
 
+> **Experimental development build.** Coverage is incomplete; this is not a production-ready installer or a claim that every catalog entry works. The recorded Windows/Fedora preservation case passed. Kubuntu's large-ISO Linux boot reaches its live environment through an owned NTFS carrier, but its tested live shutdown stalled with ISO-loop write errors. Full installation, clean shutdown, installed ext4 shrink/boot and the remaining firmware, encryption, second-disk and recovery matrix are pending. See [coverage](docs/COVERAGE.md) and [current status](docs/SESSION-STATUS.md).
+
 <p align="center"><img src="docs/screenshots/desktop.png" alt="The native USBless Dualboot app showing its raccoon mascot, storage overview and readiness checklist with sample data" width="1100"></p>
 
 [![CI](https://github.com/cYoren/usbless-dualboot/actions/workflows/ci.yml/badge.svg)](https://github.com/cYoren/usbless-dualboot/actions/workflows/ci.yml)
@@ -106,6 +108,8 @@ sudo ./bin/usbless-dualboot secureboot --verify
 | `shrink` | Back up GPT + LUKS header, scrub, shrink filesystem → LUKS → partition. |
 | `stage` | Create the FAT32 installer partition, copy the ISO, split `install.wim`. |
 | `boot` | Register a one-time UEFI entry; restore the default boot order later. |
+| `cleanup` | Preview or remove only an owned installer after both systems boot; keeps recovery metadata. |
+| `repair-carrier` | Review and explicitly rebuild a completed owned exFAT Linux ISO carrier as NTFS; preserves OS storage, EFI and the existing plan. See [recovery](docs/RECOVERY.md). |
 | `windows` | Add/remove a Windows entry in the boot menu. |
 | `secureboot` | `--prep` / `--enroll` / `--verify`: sign the Linux boot chain (sbctl) and enroll keys. |
 
@@ -146,7 +150,7 @@ No command automatically reboots the computer.
 | Area | Supported |
 |---|---|
 | Firmware | UEFI (GPT). BIOS is out of scope. |
-| Filesystems | Single-device Btrfs online shrink, optionally LUKS. ext4 is detected but automatic offline shrink is not implemented. |
+| Filesystems | Single-device Btrfs online shrink, optionally LUKS. Guarded unmounted ext4 shrink, directly or inside LUKS, with independent VM storage-fixture evidence; see [offline ext4](docs/OFFLINE-EXT4.md). |
 | Bootloaders | Limine, GRUB, systemd-boot (menu entry + ordering) |
 | Secure Boot | Custom keys via `sbctl`; keeps Microsoft keys so Windows still boots |
 | Distros | Any Arch-based or mainstream distro; Debian/Fedora tool mapping documented in `docs/DESIGN.md` |
@@ -187,16 +191,18 @@ never partition a real disk or write firmware variables.
 
 The original Windows-on-Linux procedure has a real hardware case study. The generalized
 phases changed since that run and still need disposable VM and hardware validation.
-Linux ISO loopback staging remains beta. A Windows-native frontend, automatic ISO downloads,
-automatic cleanup/undo, second-disk placement, ext4 shrink, and whole-disk replacement are
-not implemented. See [the Hop comparison](docs/HOP-COMPARISON.md) for scope and reasons.
+Linux ISO loopback staging remains beta. The Windows-native application now builds locally;
+its installation matrix is under validation. Automatic downloads, storage placement and
+cleanup are being integrated across platforms. Offline ext4 shrink and Linux-owned
+cleanup have isolated VM storage evidence. Full live-environment transitions, real Linux
+firmware cleanup and broader installation coverage remain in development. See
+[coverage and validation](docs/COVERAGE.md) for evidence.
 
-## Inspiration and recovery
+## Recovery and licensing
 
-[Hop](https://github.com/Arjun-Ingole/hop) by Arjun Ingole inspired the readiness,
-verification, installer guidance and recovery improvements. Its Windows engine is not
-included or executed here. See [attribution](THIRD_PARTY_NOTICES.md),
-[recovery](docs/RECOVERY.md), and [security reporting](SECURITY.md).
+See [recovery](docs/RECOVERY.md), [security reporting](SECURITY.md), and
+[third-party licenses](THIRD_PARTY_NOTICES.md). The application and its build/test tools
+are open-source. Windows media remains separately licensed and is not redistributed.
 
 ## Contributing
 

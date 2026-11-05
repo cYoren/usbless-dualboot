@@ -1,0 +1,32 @@
+{
+  "ok": true,
+  "source_sha256": "b9f19c874d6c336b33b0b1c2c5484b28fcdea8f1be8b19d99130e75dd94cbc8f",
+  "source_dir": "/var/tmp/usbless-engine-xxbh7bhx",
+  "result": {
+    "ok": true,
+    "date": "2026-11-03T22:40:39Z",
+    "kernel": "6.19.10-300.fc44.x86_64",
+    "tools": {
+      "e2fsprogs": "e2fsck 1.47.3 (8-Jul-2025)\n\tUsing EXT2FS Library version 1.47.3, 8-Jul-2025",
+      "sfdisk": "sfdisk from util-linux 2.41.3"
+    },
+    "kind": "disposable VM storage fixture; not OS installation evidence",
+    "filesystem": "ext4",
+    "encrypted": true,
+    "luks_header_backup": true,
+    "bytes_before": 6442450944,
+    "bytes_after": 4294967296,
+    "payload_bytes_after": 4278190080,
+    "mounted_refused": true,
+    "foreign_uuid_refused": true,
+    "dry_run_no_writes": true,
+    "completed_phase_refused": true,
+    "sentinel_before": "65028e2d17dd0e0e2ac6ba63ae0c4be234269311d66b61159b59144e95f25dc0",
+    "sentinel_after": "65028e2d17dd0e0e2ac6ba63ae0c4be234269311d66b61159b59144e95f25dc0",
+    "foreign_partition_sha256": "3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351",
+    "foreign_partition_unchanged": true,
+    "gpt_identity_unchanged": true,
+    "backups": "/var/tmp/usbless-ext4.DiATjs/state/backups/shrink.PJV0Gk",
+    "case_dir": "/var/tmp/usbless-ext4.DiATjs"
+  }
+}

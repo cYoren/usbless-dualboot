@@ -1,0 +1,27 @@
+{
+  "ok": true,
+  "source_sha256": "3385350bccd6c80e0ef32c69af70993f31717ffbd5cc1a529f8598a50f22a72e",
+  "source_dir": "/var/tmp/usbless-engine-e982g8ee",
+  "result": {
+    "ok": true,
+    "kind": "VM loop-disk and EFI-file fixture with mocked firmware; not installer boot evidence",
+    "owned_carrier_removed": true,
+    "only_owned_efi_file_removed": true,
+    "foreign_efi_files_preserved": true,
+    "other_partitions_unchanged": true,
+    "root_data_sha256": "af858d584c0d802b1e142f36411d48ce896c62050f39a99ddeaf3662bb060a72",
+    "root_data_preserved": true,
+    "firmware_delete_exact": true,
+    "dry_run_no_writes": true,
+    "confirmation_required": true,
+    "foreign_fs_refused": true,
+    "changed_range_refused": true,
+    "legacy_plan_refused": true,
+    "mounted_carrier_refused": true,
+    "foreign_boot_refused": true,
+    "ambiguous_boot_refused": true,
+    "retired_installer_boot_refused": true,
+    "backup": "/var/tmp/usbless-cleanup.VT4IA9/state/backups/cleanup.2dHuj8",
+    "case_dir": "/var/tmp/usbless-cleanup.VT4IA9"
+  }
+}

@@ -24,6 +24,7 @@ entries=$(efibootmgr -v)
 
 case "$MODE" in
   installer)
+    [[ $(cfg_get '.cleanup_complete // empty') != 1 ]] || die "installer has already been cleaned up"
     [[ $(cfg_get '.stage_complete // empty') == 1 ]] || die "installer staging is not complete"
     case $(cfg_get .direction) in
       add-windows) label='Windows 11 Installer'; loader='\EFI\BOOT\BOOTX64.EFI' ;;

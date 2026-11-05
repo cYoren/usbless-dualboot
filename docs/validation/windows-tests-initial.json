@@ -1,0 +1,23 @@
+{
+  "case": "windows-tests-initial",
+  "date": "2026-11-02",
+  "guest": "Windows 11 Pro, German, PowerShell 5.1",
+  "status": "failed; fixes and follow-up execution required",
+  "passed": 290,
+  "failed": 3,
+  "discovered_tests": 293,
+  "failed_containers": 1,
+  "failures": [
+    "Obsolete EFI loader-name expectation included a differently named application.",
+    "DiskPart test expected English output on a German installation.",
+    "A test fixture assigned RoomPath in the wrong Pester scope."
+  ],
+  "discovery_failure": {
+    "file": "platforms/windows/tests/Engine.Tests.ps1",
+    "local_and_guest_sha256": "6a8c5f5df1e37f70ffb4e9f20aa4b3aa0e6aff06e40de44625012c887666f998",
+    "defender_name": "Trojan:PowerShell/AmsiBypazz.A!MTB",
+    "defender_threat_id": 2147948514,
+    "context": "AMSI blocked parsing of the test file. The real application opened and rendered successfully. No antivirus exclusion or protection change was made."
+  },
+  "test_run_duration_seconds": 149.09
+}

@@ -1,0 +1,11 @@
+{
+  "project": "Hop",
+  "repository": "https://github.com/Arjun-Ingole/hop",
+  "commit": "7c35082b1a6feab27b925bf6807ce830ffcc4b8b",
+  "license": "MIT",
+  "copyright": "Copyright (c) 2026 Arjun Ingole",
+  "imported_at": "2026-11-01",
+  "purpose": "Windows-native installation engine and UI foundation, with the original tests and distro restrictions retained",
+  "status": "upstream-implemented; local compilation and disposable-VM validation pending",
+  "modifications": "See the repository history. USBless will use its own state, partition labels, boot markers and brand assets; it must never adopt or remove another Hop installation by label."
+}

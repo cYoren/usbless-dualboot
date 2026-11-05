@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "source_sha256": "574137a65208a96d5375cb8048955547594e607a775f509ec909a306a905d4c7",
+  "source_dir": "/var/tmp/usbless-engine-g3oop1xw",
+  "result": {
+    "iso": "/mnt/usbdb-lab-media/kubuntu-26.10-desktop-amd64.iso",
+    "bytes": 5141966848,
+    "sha256": "8160b1d6266dfe1998d183b19713680263c09669f101e0e41cbcf11f50b6f785"
+  }
+}

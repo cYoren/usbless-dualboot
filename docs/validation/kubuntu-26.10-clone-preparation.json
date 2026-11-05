@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "source_sha256": "cd35df076c576d6929e5bd1e12c51f77f2c0e0d04c4cf962f39aa1906c4205bf",
+  "source_dir": "/var/tmp/usbless-engine-wiq8b5ma",
+  "result": {
+    "vm_identity": "eb87c6bb-33aa-4b27-b27c-6a258efe7074",
+    "disk": "/dev/sda",
+    "disk_guid": "0383d3f0-1e84-4e59-8c14-b2a1b504ec4f",
+    "phase_in_progress": null,
+    "prepared": true,
+    "preserved_sentinel": "55b7f19a33abb3a3dbe32a89602d91f5119373f2f5a7f8ca9f37d265d3f2c1a2",
+    "replaced_partition_guids": [
+      "afe7c143-06c7-4812-93fe-8bf3defe3c32",
+      "fbfedaf4-c5c2-40b9-a9ef-5c255165415e"
+    ],
+    "media_partuuid": "b19423ff-3214-40ac-968e-a3c9cb776d00",
+    "media_uuid": "8f892c7d-7c9c-4568-af97-4167407a3c06"
+  }
+}

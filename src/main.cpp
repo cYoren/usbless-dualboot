@@ -21,9 +21,9 @@ int main(int argc, char **argv) {
     app.setDesktopFileName("usbless"); app.setWindowIcon(QIcon(":/raccoon.png"));
     const auto args = app.arguments();
     if (args.contains("--help")) {
-        qInfo("USBless Dualboot graphical app\nUsage: usbless [--demo] [--screenshot PATH --width N --height N --page N]\nUse usbless-dualboot for headless disk operations."); return 0;
+        qInfo("USBless Dualboot graphical app\nUsage: usbless [--demo] [--screenshot PATH --width N --height N --page N] [--preview-cleanup | --preview-cleanup-complete]\nPreview modes disable disk actions. Use usbless-dualboot for headless disk operations."); return 0;
     }
-    const bool demo = args.contains("--demo") || screenshot;
+    const bool demo = args.contains("--demo") || screenshot || args.contains("--preview-cleanup") || args.contains("--preview-cleanup-complete");
     const auto value = [&args](const QString &flag, const QString &fallback) {
         const auto index = args.indexOf(flag); return index >= 0 && index + 1 < args.size() ? args[index + 1] : fallback;
     };
@@ -37,6 +37,7 @@ int main(int argc, char **argv) {
     app.installTranslator(&translator);
     const auto resolvedEngine = QFileInfo(enginePath).canonicalFilePath();
     Backend backend(resolvedEngine.isEmpty() ? QFileInfo(enginePath).absoluteFilePath() : resolvedEngine,QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation),demo);
+    if (demo && (args.contains("--preview-cleanup") || args.contains("--preview-cleanup-complete"))) backend.previewCleanup(args.contains("--preview-cleanup-complete"));
     QQmlApplicationEngine engine;
     QObject::connect(&translator,&Translator::changed,&engine,&QQmlApplicationEngine::retranslate);
     QObject::connect(&translator,&Translator::changed,&backend,&Backend::retranslate);
