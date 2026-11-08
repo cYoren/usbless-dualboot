@@ -1,5 +1,7 @@
 # Installation coverage and validation
 
+Status: current
+
 USBless Dualboot has a Linux-native Qt Quick application and a Windows-native application.
 The Windows implementation cross-compiles successfully from Linux. This does not yet
 establish installation reliability; results below distinguish source coverage from VM evidence.

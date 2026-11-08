@@ -1,5 +1,7 @@
 # Case studies
 
+Status: current
+
 Real runs on real hardware. Each one records the exact configuration, the steps taken, and the
 lessons learned, so others (and agents) can adapt the method.
 

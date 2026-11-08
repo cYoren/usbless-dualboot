@@ -1,5 +1,7 @@
 # Disposable installation lab
 
+Status: current
+
 The lab runs QEMU/KVM and UEFI firmware from the user's cache. Its disks are regular
 files under `.lab/vms`; host block devices are rejected. Windows media is supplied by
 the user and is never redistributed. No paid service or GitHub Actions job is needed.

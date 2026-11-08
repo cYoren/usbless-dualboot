@@ -1,5 +1,7 @@
 # Progress and recovery
 
+Status: current
+
 Always use the same config path used by the plan. `USBDB_CONFIG` overrides the default
 `/var/lib/usbless-dualboot/config.json`; a non-root `plan --write` saves a local JSON file.
 Do not create a new plan over an interrupted installation.

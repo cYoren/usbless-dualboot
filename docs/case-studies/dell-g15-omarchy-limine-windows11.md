@@ -1,5 +1,7 @@
 # Case study: Dell G15 5525 (Omarchy + Limine + LUKS/Btrfs → Windows 11)
 
+Status: historical (2026-09-23) — case study, kept for provenance.
+
 ## Machine
 
 - Vendor / model: Dell G15 5525 (`0VPCV2`), AMD Rembrandt + RTX 3050 Mobile
