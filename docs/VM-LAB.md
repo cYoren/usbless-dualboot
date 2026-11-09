@@ -91,6 +91,26 @@ Current Windows PE media lacks `findstr.exe`; the layout guard uses CMD builtins
 `vm.py quit NAME` force-stops only that disposable guest and its private TPM helper;
 prefer guest shutdown so disk writes finish. No command deletes virtual disks.
 
+Media for the validation matrix is fetched, not hand-placed:
+
+```bash
+python tools/lab/fetch_isos.py                     # every known entry
+python tools/lab/fetch_isos.py ubuntu debian       # named catalog ids
+```
+
+It resolves the publisher's current media, reads the publisher's own checksum file and
+resumes partial transfers into `.lab/cache/isos/<id>/<image>` with a `media.json` record.
+Verified media is reused and never re-downloaded. A transfer that finishes with the wrong
+checksum is moved aside as `*.part.rejected-<stamp>` so the next attempt starts clean;
+an interrupted transfer keeps its `.part` for resumption. Nothing is deleted.
+
+Installed-system switching needs no typed shell command: the Linux lab agent exposes an
+allowlisted `boot-entry` action.
+
+```bash
+python tools/lab/client.py linux-kubuntu boot-entry --entry 000B
+```
+
 The following checks use no VM, real disk operation or firmware write:
 
 ```bash

@@ -66,6 +66,14 @@ def guarded_disk(identity):
     return disk, table
 
 
+def run_both(*args, env=None):
+    result = subprocess.run(list(map(str, args)), env=env, capture_output=True, text=True)
+    text = (result.stdout + result.stderr).strip()
+    if result.returncode:
+        raise RuntimeError(f'{args[0]} failed ({result.returncode}): ' + text[-2500:])
+    return text
+
+
 def save(report):
     target = STATE / 'state.json'
     temp = target.with_suffix('.new')
@@ -166,7 +174,8 @@ def prepare(identity, disk, table):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('step', choices=['prepare', 'fetch', 'plan', 'shrink', 'stage', 'boot-installer', 'repair-preview', 'repair'])
+    parser.add_argument('step', choices=['prepare', 'fetch', 'plan', 'shrink', 'stage', 'boot-installer',
+                                         'repair-preview', 'repair', 'cleanup-preview', 'cleanup'])
     parser.add_argument('--vm-identity', required=True)
     parser.add_argument('--media-port', type=int, default=8765)
     args = parser.parse_args()
@@ -211,11 +220,16 @@ def main():
                 'boot-installer': ['boot', '--installer'],
                 'repair-preview': ['repair-carrier', '--iso', str(saved_iso), '--dry-run'],
                 'repair': ['repair-carrier', '--iso', str(saved_iso), '--confirm-rebuild-installer'],
+                'cleanup-preview': ['cleanup', '--installer-only', '--dry-run'],
+                'cleanup': ['cleanup', '--installer-only', '--confirm-both-booted'],
             }
-            output = run('bash', engine, *commands[args.step], env=env)
+            output = run_both('bash', engine, *commands[args.step], env=env)
             (STATE / (args.step + '.log')).write_text(output + '\n')
             result = dict(step=args.step, log=str(STATE / (args.step + '.log')),
                           config=json.loads((MEDIA / 'kubuntu-plan.json').read_text()))
+            if args.step.startswith('cleanup'):
+                # The reviewed removal plan is the evidence for this step.
+                result['log_text'] = (STATE / (args.step + '.log')).read_text()[-4000:]
             if args.step == 'stage':
                 # Casper scans filesystem roots for iso-scan/filename. Keep the
                 # original intact in a subdirectory so only the exFAT carrier

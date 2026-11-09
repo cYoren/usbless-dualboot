@@ -5,6 +5,42 @@ Status: current
 This is an active-work handoff requested by the user, not a finished release or wrap-up.
 Read this file before repeating any tests, downloads, builds or VM installation.
 
+## Resumed work: 2026-11-09 (latest)
+
+- **Kubuntu 26.10 Linux-hosted case is now complete end to end.** Evidence:
+  `docs/validation/kubuntu-26.10-linux-install.json` (+ install progress, finished and
+  installed-desktop screenshots). Calamares installed onto a new 120605 MiB ext4 root at
+  `/dev/sda7` in the planned region, keeping the ESP unformatted; the installed system
+  booted (`7.3.0-9-generic`). Fedora's Btrfs root, sentinel `55b7f19a…f2c1a2` and the
+  `fedora`/`Microsoft` EFI loaders were unchanged. The reviewed
+  `cleanup --installer-only` removed only the 12 GiB NTFS carrier, `EFI/usbless` and
+  firmware entry 0003; Kubuntu (sentinel `198e3747…28bbe177`) and Fedora both rebooted.
+  Do not repeat the install or the cleanup on this clone.
+- Two facts changed the earlier plan and should shape the breadth work:
+  **Kubuntu 26.10 uses Calamares** (no `autoinstall`; sequence
+  welcome → locale → keyboard → pkgselect → partition → users → summary), and Calamares
+  manual partitioning is what the engine instructions describe. RPM/DEB families differ
+  per installer engine, so breadth needs one driver per engine, not one per distro.
+- Lab additions (host side): `tools/lab/fetch_isos.py` resolves publisher media, verifies
+  the publisher checksum file and resumes; 16 entries are being fetched into
+  `.lab/cache/isos/<id>/` with `media.json` records. The cached Kubuntu and Fedora KDE
+  ISOs were hard-linked into that layout and their manifests were written from the already
+  verified hashes — do not download them again.
+- `tools/lab/linux-agent.py` gained an allowlisted `boot-entry` action (four hex digits,
+  checked against `efibootmgr` output) and `tools/lab/case-linux-kubuntu.py` gained
+  `cleanup-preview`/`cleanup` steps that return the reviewed plan text. Both are covered by
+  the existing lab tests (`python3 -m pytest tools/lab`, 36 passed).
+- **Credential hygiene:** during GUI automation the disposable lab password was typed into
+  a shell prompt twice and appears in two local screenshots. It is a generated
+  disposable-VM credential, but rotate it in `.lab/seeds/windows-base/credentials.json`
+  before this VM image is reused for anything else, and do not commit those screenshots.
+- Live-session shutdown still stalls with repeated `loop0` WRITE I/O errors after use of
+  the internal carrier. The installer had unmounted and synced before the stall; the VM was
+  stopped and the installed system booted normally. Keep recording this as a limitation.
+- Remaining matrix: installed-system ext4 shrink and boot, baseline distro coverage,
+  Secure Boot, Windows encryption, second disk, failure/recovery dimensions. All ISOs for
+  the first breadth wave are being prefetched, so cases should not wait on downloads.
+
 ## Resumed work: 2026-11-05 (latest)
 
 - Requested scope is now an expedited development merge into the open-source

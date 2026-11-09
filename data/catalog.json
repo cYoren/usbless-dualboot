@@ -1644,11 +1644,12 @@
         },
         "linux": {
           "implementation": "implemented",
-          "validation": "prepared"
+          "validation": "preservation-recovery-validated"
         }
       },
       "evidence": [
-        "docs/validation/kubuntu-26.10-linux-preservation.json"
+        "docs/validation/kubuntu-26.10-linux-preservation.json",
+        "docs/validation/kubuntu-26.10-linux-install.json"
       ]
     },
     {

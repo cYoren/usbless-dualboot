@@ -1,0 +1,114 @@
+{
+ "distro": "kubuntu",
+ "release": "26.10",
+ "host_platform": "linux",
+ "incumbent": "Fedora KDE 44 (Btrfs, kernel 6.19.10-300.fc44.x86_64)",
+ "date": "2026-11-09",
+ "status": "installed-and-booted; incumbent preserved; owned installer cleaned up; both systems rebooted",
+ "clone_identity": {
+  "vm_uuid": "eb87c6bb-33aa-4b27-b27c-6a258efe7074",
+  "disk_guid": "0383d3f0-1e84-4e59-8c14-b2a1b504ec4f",
+  "disk_serial": "USBDBLABSYSTEM",
+  "disposable": true,
+  "note": "Separately identified clone of the preserved checkpoint; the original preservation VM was never started for this case."
+ },
+ "media": {
+  "file": "kubuntu-26.10-desktop-amd64.iso",
+  "bytes": 5141966848,
+  "sha256": "8160b1d6266dfe1998d183b19713680263c09669f101e0e41cbcf11f50b6f785",
+  "verified_against": "official cdimage.ubuntu.com SHA256SUMS, signed copy verified earlier in this lab",
+  "installer_engine": "Calamares",
+  "installer_pages": [
+   "welcome",
+   "locale",
+   "keyboard",
+   "pkgselect",
+   "partition",
+   "users",
+   "summary",
+   "install",
+   "finish"
+  ]
+ },
+ "carrier": {
+  "fstype": "ntfs",
+  "partition": "/dev/sda6",
+  "partuuid": "6f6119e0-01f9-4015-aec7-f6f6ed9d0083",
+  "fs_uuid": "29EED3E9100BA43B",
+  "start_sector": 511703040,
+  "sectors": 25167839,
+  "owned_loader": "/boot/efi/EFI/usbless/grubx64.efi",
+  "owned_loader_sha256": "c717d5527a44591126b83fd961457dabd037c1cf76393f169ba450a26f9be847",
+  "history": "Reached the live desktop from this carrier after the guarded exFAT-to-NTFS repair recorded in kubuntu-26.10-linux-preservation.json.",
+  "live_iso_backing_major_minor": "8:6"
+ },
+ "installation": {
+  "started": true,
+  "completed": true,
+  "installer_screen": "docs/validation/kubuntu-26.10-install-progress.png",
+  "finished_screen": "docs/validation/kubuntu-26.10-install-done.png",
+  "partitioning": "Calamares Manual partitioning: existing ESP kept unformatted with mount point /boot/efi; new ext4 root created in the planned free region; no other partition touched",
+  "root_device": "/dev/sda7",
+  "root_fstype": "ext4",
+  "root_size_mib": 120605,
+  "esp_kept_unformatted": true,
+  "bootloader": "/boot/efi/EFI/ubuntu/shimx64.efi (firmware entry 000B Kubuntu)",
+  "live_session_shutdown": "The installed live session still stalled on normal shutdown with repeated loop0 WRITE I/O errors (already recorded limitation). QEMU was stopped and the VM restarted; installed filesystems were already unmounted and synced by the installer, and the installed system booted normally afterwards."
+ },
+ "installed_system": {
+  "booted": true,
+  "kernel": "7.3.0-9-generic",
+  "login": "graphical SDDM login with the disposable lab account",
+  "desktop_screen": "docs/validation/kubuntu-26.10-installed-desktop.png",
+  "sentinel_path": "/home/usblab/preserve",
+  "sentinel_sha256": "198e3747fe8fc937035c294365db9454d77583c4a6b7696c52290d0128bbe177",
+  "efi_directories_after_cleanup": {
+   "Microsoft": true,
+   "fedora": true,
+   "usbless": false
+  }
+ },
+ "incumbent_preservation": {
+  "fedora_root_before": "/dev/sda5[/root]",
+  "fedora_fstype": "btrfs",
+  "fedora_sentinel_path": "/home/usblab/preserve",
+  "fedora_sentinel_sha256": "55b7f19a33abb3a3dbe32a89602d91f5119373f2f5a7f8ca9f37d265d3f2c1a2",
+  "fedora_booted_after_installation": true,
+  "fedora_booted_after_cleanup": true,
+  "efi_fedora_loaders_intact": true,
+  "efi_microsoft_loaders_intact": true,
+  "note": "This clone replaced the cloned Windows/WinRE partitions with a lab media partition before the case, so Windows preservation is not measured here; the Microsoft EFI loaders themselves were left intact and were never rewritten."
+ },
+ "cleanup": {
+  "reviewed_plan": "Installer cleanup plan:\n  disk: /dev/sda (0383D3F0-1E84-4E59-8C14-B2A1B504EC4F)\n  owned carrier: /dev/sda6, UUID 6f6119e0-01f9-4015-aec7-f6f6ed9d0083\n  sectors: 511703040, count 25167839\n  firmware entries: 0003\n  owned EFI file: /boot/efi/EFI/usbless/grubx64.efi (saved SHA256 verified)\nFreed space will remain available; existing operating-system partitions will keep their sizes.\ndry-run: no changes made",
+  "executed": true,
+  "carrier_removed": true,
+  "firmware_entry_0003_removed": true,
+  "owned_efi_directory_removed": true,
+  "recovery_metadata_retained": true,
+  "freed_segments": "188127165 free sectors in 3 segments (largest 77.7 GiB)",
+  "partitions_after_cleanup": [
+   "/dev/sda1 (ESP, vfat, kept)",
+   "/dev/sda2",
+   "/dev/sda3 (lab media, ext4)",
+   "/dev/sda4 (Fedora /boot)",
+   "/dev/sda5 (Fedora Btrfs)",
+   "/dev/sda7 (Kubuntu ext4 root)"
+  ],
+  "kubuntu_booted_after_cleanup": true,
+  "kubuntu_sentinel_unchanged": true
+ },
+ "limitations": [
+  "Single disk, single unencrypted case with Secure Boot disabled; those remain independent dimensions.",
+  "The live session's normal shutdown still stalls with loop0 WRITE I/O errors; QEMU was stopped after the installer had unmounted and synced the installed filesystems.",
+  "The clone's incumbent is Fedora, not Windows: Windows preservation for the Linux-hosted direction is not claimed.",
+  "Installer pages were driven through the guest's own GUI (QMP input); partman actions are visible in the Summary page that was reviewed before Install."
+ ],
+ "evidence": [
+  "docs/validation/kubuntu-26.10-install-progress.png",
+  "docs/validation/kubuntu-26.10-install-done.png",
+  "docs/validation/kubuntu-26.10-installed-desktop.png",
+  "docs/validation/kubuntu-26.10-ntfs-live-welcome.png",
+  "docs/validation/kubuntu-26.10-linux-preservation.json"
+ ]
+}
