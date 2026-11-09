@@ -252,7 +252,8 @@ def main():
                                          'repair-preview', 'repair', 'cleanup-preview', 'cleanup',
                                          'plan-windows', 'plan-dry-windows', 'shrink-offline-ext4', 'probe',
                                          'chain-fetch', 'chain-plan', 'chain-shrink', 'chain-stage',
-                                         'chain-boot', 'chain-inspect', 'chain-free-media'])
+                                         'chain-boot', 'chain-inspect', 'chain-free-media',
+                                         'chain-relocate-iso'])
     parser.add_argument('--vm-identity', required=True)
     parser.add_argument('--media-port', type=int, default=8765)
     parser.add_argument('--distro')
@@ -314,6 +315,17 @@ def main():
             result = dict(step=args.step, freed_bytes=freed,
                           free_after=__import__('shutil').disk_usage(MEDIA).free)
             print(json.dumps(result)); return
+        if args.step == 'chain-relocate-iso':
+            # The plan was written where the media lived at the time; the shrink and
+            # stage steps run from the other installed system, so record the shared
+            # path while keeping the plan's saved fingerprint authoritative.
+            config = json.loads(plan.read_text())
+            if config.get('iso_sha256') != hashlib.file_digest(iso.open('rb'), 'sha256').hexdigest():
+                raise ValueError('Relocated media does not match the plan fingerprint')
+            config['iso'] = str(iso)
+            plan.write_text(json.dumps(config, indent=2) + '\n')
+            result = dict(step=args.step, iso=str(iso), sha256=config['iso_sha256'])
+            print(json.dumps(result)); return
         if args.step == 'chain-plan':
             output = run_both('bash', engine, 'plan', '--add', 'linux', '--iso', iso,
                               '--linux-new-size', args.size, '--installer-size', '12G', '--write', env=env)
@@ -326,7 +338,10 @@ def main():
                 plan.write_text(json.dumps(config, indent=2) + '\n')
             result = dict(step=args.step, log_text=output[-3000:], config=json.loads(plan.read_text()))
             print(json.dumps(result)); return
-        commands = {'chain-shrink': ['shrink'], 'chain-stage': ['stage', '--os', 'linux'],
+        # The ext4 incumbent is unmounted from this side of the reboot, so the
+        # filesystem step must run offline against the media recorded in the plan.
+        commands = {'chain-shrink': ['shrink', '--offline', '--iso', str(iso)],
+                    'chain-stage': ['stage', '--os', 'linux'],
                     'chain-boot': ['boot', '--installer'], 'chain-inspect': ['status']}
         output = run_both('bash', engine, *commands[args.step], env=env)
         result = dict(step=args.step, log_text=output[-3000:], config=json.loads(plan.read_text()))
