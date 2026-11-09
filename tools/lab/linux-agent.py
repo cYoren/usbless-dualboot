@@ -192,6 +192,17 @@ def main():
                             response = inspect_live()
                         elif request.get('action') in ['test-ext4', 'test-cleanup', 'test-repair', 'linux-kubuntu']:
                             response = test_ext4(request)
+                        elif request.get('action') == 'boot-entry':
+                            # Explicit firmware entry by number: never inferred.
+                            entry = request.get('entry', '')
+                            if not isinstance(entry, str) or not re.fullmatch('[0-9A-Fa-f]{4}', entry):
+                                raise ValueError('A four-hex-digit firmware entry is required')
+                            listing = run('efibootmgr')
+                            if f'Boot{entry.upper()}' not in listing:
+                                raise ValueError('Requested firmware entry does not exist')
+                            run('efibootmgr', '-n', entry.upper())
+                            response = dict(ok=True, action='boot-entry', boot_next=entry.upper())
+                            reboot = True
                         elif request.get('action') == 'boot-windows':
                             entry = windows_entry()
                             run('efibootmgr', '-n', entry)

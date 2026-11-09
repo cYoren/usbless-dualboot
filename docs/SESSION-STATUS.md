@@ -1,6 +1,35 @@
-# Active development status: 2026-11-05
+# Active development status: 2026-11-09
 
-## Experimental development integration (latest)
+## Kubuntu 26.10 Linux-hosted case completed (latest)
+
+The large-ISO Linux path is now validated end to end on its disposable clone, not just to
+the live desktop. Canonical media `kubuntu-26.10-desktop-amd64.iso` (SHA-256
+`8160b1d6…f50b6f785`) booted from the owned NTFS carrier into Calamares, installed Kubuntu
+26.10 onto a new 120605 MiB ext4 root at `/dev/sda7` in the planned region while keeping
+the existing ESP unformatted, and the installed system booted to a graphical session
+(kernel `7.3.0-9-generic`).
+
+The incumbent Fedora KDE 44 was preserved: same Btrfs root `/dev/sda5[/root]`, identical
+data sentinel `55b7f19a…f2c1a2`, intact `fedora` and `Microsoft` EFI loaders. Both systems
+booted **after** the reviewed `cleanup --installer-only` removed only the owned 12 GiB
+carrier, its `EFI/usbless` loader and firmware entry 0003; recovery metadata was retained
+and Kubuntu's sentinel `198e3747…28bbe177` was unchanged.
+
+Record: `validation/kubuntu-26.10-linux-install.json` with install, finished and installed
+desktop screenshots. The catalog entry for Kubuntu (Linux platform) now reports
+`preservation-recovery-validated`.
+
+Known limitation carried forward: the live session still stalls on normal shutdown with
+repeated `loop0` WRITE I/O errors. The installer had already unmounted and synced the
+installed filesystems before that stall, and the installed system booted normally after
+the VM was stopped and restarted. This is not a clean live-session shutdown claim.
+
+Still pending across the matrix: installed-system ext4 shrink, remaining baseline distro
+coverage, Secure Boot, Windows encryption, a second disk and the failure/recovery
+dimensions. `tools/lab/fetch_isos.py` now resolves publisher media and verifies publisher
+checksums so those cases do not wait on downloads.
+
+## Experimental development integration (2026-11-05)
 
 The requested scope is merging development progress into the open-source main
 branch with limitations recorded, rather than completing the full acceptance
