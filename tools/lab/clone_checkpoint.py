@@ -13,6 +13,20 @@ import uuid
 from vm import REPO, command, directory, regular_file, request, validate_disk_chain
 
 
+def data_disks(folder, config):
+    """Return the registered data disks, refusing anything outside this VM folder."""
+    disks = []
+    for extra in config.get('extra_disks', []):
+        name = extra.get('file')
+        if not isinstance(name, str) or not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}', name):
+            raise ValueError('Data disk registration is unsafe')
+        path = regular_file(folder / name)
+        if path.parent != folder.resolve():
+            raise ValueError('Data disks must remain inside their own VM directory')
+        disks.append(path)
+    return disks
+
+
 def clone(source_name, target_name, snapshot, variables, size=None, role='linux-validation', lab=None):
     lab = lab or REPO / '.lab'
     source = directory(source_name, lab).resolve(strict=True)
@@ -22,6 +36,7 @@ def clone(source_name, target_name, snapshot, variables, size=None, role='linux-
     config = json.loads((source / 'vm.json').read_text())
     if config.get('disposable') is not True:
         raise ValueError('Source is not marked disposable')
+    data_disks(source, config)
     if not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}', snapshot):
         raise ValueError('Unsafe checkpoint name')
     monitor = source / 'qmp.sock'
@@ -50,6 +65,11 @@ def clone(source_name, target_name, snapshot, variables, size=None, role='linux-
     # qemu-img's normal file locking remains enabled. Never use force-shared (-U).
     command('qemu-img', ['convert', '-m', '2', '-l', 'snapshot.name=' + snapshot,
                         '-f', 'qcow2', '-O', 'qcow2', disk, target / 'system.qcow2'])
+    for data in data_disks(source, config):
+        # A registered data disk is part of the case; copy it or refuse. Never
+        # produce a clone whose vm.json names a file that was not copied.
+        command('qemu-img', ['convert', '-m', '2', '-f', 'qcow2', '-O', 'qcow2',
+                            data, target / data.name])
     if size:
         command('qemu-img', ['resize', '-f', 'qcow2', target / 'system.qcow2', size])
     shutil.copyfile(firmware, target / 'OVMF_VARS.fd')

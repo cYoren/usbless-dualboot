@@ -36,6 +36,19 @@ class CloneSafetyTests(unittest.TestCase):
             command.assert_not_called()
         self.assertEqual(marker.read_bytes(), b'existing partial clone')
 
+    def test_registered_data_disks_are_validated(self):
+        (self.source / 'vm.json').write_text(json.dumps({'disposable': True, 'extra_disks': [
+            {'file': 'data-USBDBLABDATA.qcow2', 'serial': 'USBDBLABDATA'}]}))
+        with self.assertRaises(FileNotFoundError):
+            helper.data_disks(self.source, json.loads((self.source / 'vm.json').read_text()))
+        (self.source / 'data-USBDBLABDATA.qcow2').write_bytes(b'data')
+        self.assertEqual([p.name for p in helper.data_disks(self.source, json.loads((self.source / 'vm.json').read_text()))],
+                         ['data-USBDBLABDATA.qcow2'])
+
+    def test_unsafe_data_disk_names_are_refused(self):
+        with self.assertRaisesRegex(ValueError, 'unsafe'):
+            helper.data_disks(self.source, {'extra_disks': [{'file': '../escape.qcow2'}]})
+
     def test_running_source_is_rejected_before_disk_access(self):
         (self.source / 'qmp.sock').touch()
         with patch.object(helper, 'request', return_value={'running': True}), \

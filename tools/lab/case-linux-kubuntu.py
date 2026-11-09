@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import uuid
 
 ORIGINAL_VM = '23f093f6-8fb4-42cc-bd37-068295d8c8ae'
@@ -27,10 +28,13 @@ EXPECTED = {
     RECOVERY_GUID: (136602189824, 834666496),
 }
 ISO_NAME = 'kubuntu-26.10-desktop-amd64.iso'
+WINDOWS_NAME = 'win11-lab.iso'
+WINDOWS_BYTES = 8489097216
 ISO_BYTES = 5141966848
 ISO_SHA256 = '8160b1d6266dfe1998d183b19713680263c09669f101e0e41cbcf11f50b6f785'
 STATE = Path('/var/lib/USBlessLab/kubuntu')
 MEDIA = Path('/mnt/usbdb-lab-media')
+STATE_WINDOWS = MEDIA / 'state-windows'
 
 
 def run(*args, input=None, env=None):
@@ -43,7 +47,7 @@ def run(*args, input=None, env=None):
     return result.stdout.strip()
 
 
-def guarded_disk(identity):
+def guarded_disk(identity, incumbent='fedora'):
     dmi = Path('/sys/class/dmi/id')
     if (identity == ORIGINAL_VM or str(uuid.UUID(identity)) != identity or
             (dmi / 'product_serial').read_text().strip() != identity or
@@ -61,8 +65,22 @@ def guarded_disk(identity):
     if table['label'] != 'gpt' or table['id'].strip('{}').lower() != DISK_GUID:
         raise ValueError('Clone disk GUID differs')
     root = run('findmnt', '-n', '-o', 'SOURCE', '/').split('[')[0]
-    if run('blkid', '-s', 'PARTUUID', '-o', 'value', root).lower() != ROOT_GUID:
-        raise ValueError('Run this case from the preserved Fedora incumbent')
+    root_uuid = run('blkid', '-s', 'PARTUUID', '-o', 'value', root).lower()
+    if incumbent == 'fedora':
+        if root_uuid != ROOT_GUID:
+            raise ValueError('Run this step from the preserved Fedora incumbent')
+    elif incumbent == 'any':
+        pass
+    elif incumbent == 'kubuntu':
+        # The installed Kubuntu root is the ext4 partition created inside the
+        # planned region; it must not be the Fedora root.
+        if root_uuid == ROOT_GUID or run('blkid', '-s', 'TYPE', '-o', 'value', root) != 'ext4':
+            raise ValueError('Run this step from the installed Kubuntu system')
+        start = int((Path('/sys/class/block') / Path(root).name / 'start').read_text())
+        if start != 264704000:
+            raise ValueError('The Kubuntu root is not inside the planned region')
+    else:
+        raise ValueError('Unknown incumbent')
     return disk, table
 
 
@@ -103,6 +121,34 @@ def ensure_media(report, table):
     run('mount', 'UUID=' + report['media_uuid'], MEDIA)
     if run('findmnt', '-n', '--mountpoint', MEDIA, '-o', 'UUID') != report['media_uuid']:
         raise ValueError('Lab media mount identity differs after mounting')
+
+
+def ensure_lab_media():
+    """Attach the shared lab partition by its own label, from either installed system.
+
+    The Kubuntu case state lives on Fedora's root, so steps that run from the
+    installed Kubuntu must not depend on it; the partition label is the identity
+    that both systems can see.
+    """
+    MEDIA.mkdir(parents=True, exist_ok=True)
+    probe = subprocess.run(['findmnt', '-n', '--mountpoint', str(MEDIA), '-o', 'LABEL'],
+                           capture_output=True, text=True)
+    if probe.returncode == 0:
+        if probe.stdout.strip() != 'USBDBLABMEDIA':
+            raise ValueError('The lab media mount point carries a different filesystem')
+        return
+    if probe.returncode != 1:
+        raise ValueError('Could not inspect the lab media mount point')
+    matches = run('blkid', '-L', 'USBDBLABMEDIA').split()
+    if len(matches) != 1 or not Path(matches[0]).is_block_device():
+        raise ValueError('The shared lab media partition was not found by label')
+    device = matches[0]
+    if run('blkid', '-s', 'TYPE', '-o', 'value', device) != 'ext4':
+        raise ValueError('The shared lab media partition is not ext4')
+    if any(MEDIA.iterdir()):
+        raise ValueError('Refusing to hide existing files beneath the lab media mount')
+    run('mount', device, MEDIA)
+    print(json.dumps(dict(media_device=device)), file=sys.stderr, flush=True)
 
 
 def prepare(identity, disk, table):
@@ -172,75 +218,145 @@ def prepare(identity, disk, table):
     return report
 
 
+def ensure_windows_media():
+    """Copy the lab's Windows media onto the shared lab partition exactly once.
+
+    The plan and the later offline shrink both hash this file, so it must live on
+    storage visible to both installed systems rather than on either root.
+    """
+    target = MEDIA / WINDOWS_NAME
+    if target.exists():
+        if target.stat().st_size != WINDOWS_BYTES:
+            raise ValueError('Existing Windows media differs from the user ISO size; inspect instead of replacing')
+        return target
+    source = Path('/dev/sr0')
+    if not source.exists():
+        raise ValueError('The Windows ISO is not attached as a read-only optical device')
+    if int(run('blockdev', '--getsize64', source)) != WINDOWS_BYTES:
+        raise ValueError('Attached optical device is not the expected Windows media')
+    partial = target.with_suffix('.iso.part')
+    if partial.exists():
+        partial.unlink()
+    run('dd', f'if={source}', f'of={partial}', 'bs=8M', 'status=none')
+    if partial.stat().st_size != WINDOWS_BYTES:
+        raise ValueError('Copied Windows media has the wrong size')
+    partial.rename(target)
+    run('sync', '-f', target)
+    return target
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('step', choices=['prepare', 'fetch', 'plan', 'shrink', 'stage', 'boot-installer',
-                                         'repair-preview', 'repair', 'cleanup-preview', 'cleanup'])
+                                         'repair-preview', 'repair', 'cleanup-preview', 'cleanup',
+                                         'plan-windows', 'plan-dry-windows', 'shrink-offline-ext4', 'probe'])
     parser.add_argument('--vm-identity', required=True)
     parser.add_argument('--media-port', type=int, default=8765)
     args = parser.parse_args()
     if not 1024 <= args.media_port <= 65535:
         raise ValueError('Invalid private media port')
-    disk, table = guarded_disk(args.vm_identity)
+    incumbent = 'kubuntu' if args.step in ('plan-windows', 'plan-dry-windows', 'probe') else 'fedora'
+    disk, table = guarded_disk(args.vm_identity, incumbent)
     if args.step == 'prepare':
         result = prepare(args.vm_identity, disk, table)
-    else:
-        report = json.loads((STATE / 'state.json').read_text())
-        if not report.get('prepared') or report.get('vm_identity') != args.vm_identity:
-            raise ValueError('This clone was not prepared successfully')
-        ensure_media(report, table)
-        iso = MEDIA / ISO_NAME
-        if args.step == 'fetch':
-            if not iso.exists():
-                partial = iso.with_suffix('.iso.part')
-                run('curl', '--fail', '--location', '--continue-at', '-', '--output', partial,
-                    f'http://10.0.2.2:{args.media_port}/kubuntu.iso')
-                with partial.open('rb') as source:
-                    digest = hashlib.file_digest(source, 'sha256').hexdigest()
-                if partial.stat().st_size != ISO_BYTES or digest != ISO_SHA256:
-                    raise ValueError('Kubuntu media does not match the official size/hash')
-                partial.rename(iso)
-            else:
-                with iso.open('rb') as source:
-                    digest = hashlib.file_digest(source, 'sha256').hexdigest()
-                if iso.stat().st_size != ISO_BYTES or digest != ISO_SHA256:
-                    raise ValueError('Existing media differs; never silently replace it')
-            result = dict(iso=str(iso), bytes=ISO_BYTES, sha256=digest)
+        print(json.dumps(result))
+        return
+    if args.step == 'probe':
+        engine = Path(__file__).resolve().parents[2] / 'bin/usbless-dualboot'
+        output = run('bash', engine, 'probe', '--json')
+        result = dict(step='probe', probe=json.loads(output))
+        print(json.dumps(result))
+        return
+    if args.step == 'plan-dry-windows':
+        # Read-only: proves which disk the plan selects when a second disk is present.
+        ensure_lab_media()
+        engine = Path(__file__).resolve().parents[2] / 'bin/usbless-dualboot'
+        windows = MEDIA / WINDOWS_NAME
+        if not windows.is_file():
+            raise ValueError('The Windows media staged for this plan is missing')
+        output = run_both('bash', engine, 'plan', '--add', 'windows', '--iso', windows,
+                          '--linux-new-size', '30G', '--installer-size', '12G')
+        result = dict(step='plan-dry-windows', log_text=output[-4000:])
+        print(json.dumps(result))
+        return
+    if args.step in ('plan-windows', 'shrink-offline-ext4'):
+        # Windows-direction steps run from the installed Kubuntu (plan) or from the
+        # preserved Fedora incumbent (offline shrink); the plan lives on the shared
+        # lab partition so both systems hash the same media and read the same state.
+        ensure_lab_media()
+        engine = Path(__file__).resolve().parents[2] / 'bin/usbless-dualboot'
+        env = dict(os.environ, USBDB_CONFIG=str(MEDIA / 'windows-plan.json'),
+                   USBDB_STATE_DIR=str(STATE_WINDOWS))
+        if args.step == 'plan-windows':
+            windows = ensure_windows_media()
+            output = run_both('bash', engine, 'plan', '--add', 'windows', '--iso', windows,
+                              '--linux-new-size', '40G', '--installer-size', '12G', '--write', env=env)
         else:
-            engine = Path(__file__).resolve().parents[2] / 'bin/usbless-dualboot'
-            saved_iso = MEDIA / 'source-media' / ISO_NAME
-            if args.step == 'stage' and saved_iso.exists():
-                raise ValueError('Previous source-media relocation exists; inspect instead of repeating staging')
-            env = dict(os.environ, USBDB_CONFIG=str(MEDIA / 'kubuntu-plan.json'),
-                       USBDB_STATE_DIR=str(STATE / 'engine'))
-            commands = {
-                'plan': ['plan', '--add', 'linux', '--iso', str(iso), '--sha256', ISO_SHA256,
-                         '--linux-new-size', '22G', '--installer-size', '12G', '--write'],
-                'shrink': ['shrink'], 'stage': ['stage', '--os', 'linux'],
-                'boot-installer': ['boot', '--installer'],
-                'repair-preview': ['repair-carrier', '--iso', str(saved_iso), '--dry-run'],
-                'repair': ['repair-carrier', '--iso', str(saved_iso), '--confirm-rebuild-installer'],
-                'cleanup-preview': ['cleanup', '--installer-only', '--dry-run'],
-                'cleanup': ['cleanup', '--installer-only', '--confirm-both-booted'],
-            }
-            output = run_both('bash', engine, *commands[args.step], env=env)
-            (STATE / (args.step + '.log')).write_text(output + '\n')
-            result = dict(step=args.step, log=str(STATE / (args.step + '.log')),
-                          config=json.loads((MEDIA / 'kubuntu-plan.json').read_text()))
-            if args.step.startswith('cleanup'):
-                # The reviewed removal plan is the evidence for this step.
-                result['log_text'] = (STATE / (args.step + '.log')).read_text()[-4000:]
-            if args.step == 'stage':
-                # Casper scans filesystem roots for iso-scan/filename. Keep the
-                # original intact in a subdirectory so only the exFAT carrier
-                # matches that path. This makes the large-carrier boot evidence
-                # independent of the ext4 media copy. Boot/cleanup do not need
-                # the original ISO path after a successful verified staging.
-                if result['config'].get('stage_complete') != '1':
-                    raise ValueError('Staging did not complete; retain the original ISO path')
-                saved_iso.parent.mkdir(exist_ok=True)
-                iso.rename(saved_iso)
-                result['preserved_source_iso'] = str(saved_iso)
+            windows = MEDIA / WINDOWS_NAME
+            if not windows.is_file():
+                raise ValueError('The Windows media staged for this plan is missing')
+            output = run_both('bash', engine, 'shrink', '--offline', '--iso', windows, env=env)
+        STATE_WINDOWS.mkdir(parents=True, exist_ok=True)
+        (STATE_WINDOWS / (args.step + '.log')).write_text(output + '\n')
+        result = dict(step=args.step, log=str(STATE_WINDOWS / (args.step + '.log')), log_text=output[-4000:],
+                      config=json.loads((MEDIA / 'windows-plan.json').read_text()))
+        print(json.dumps(result))
+        return
+
+    report = json.loads((STATE / 'state.json').read_text())
+    if not report.get('prepared') or report.get('vm_identity') != args.vm_identity:
+        raise ValueError('This clone was not prepared successfully')
+    ensure_media(report, table)
+    iso = MEDIA / ISO_NAME
+    if args.step == 'fetch':
+        if not iso.exists():
+            partial = iso.with_suffix('.iso.part')
+            run('curl', '--fail', '--location', '--continue-at', '-', '--output', partial,
+                f'http://10.0.2.2:{args.media_port}/kubuntu.iso')
+            with partial.open('rb') as source:
+                digest = hashlib.file_digest(source, 'sha256').hexdigest()
+            if partial.stat().st_size != ISO_BYTES or digest != ISO_SHA256:
+                raise ValueError('Kubuntu media does not match the official size/hash')
+            partial.rename(iso)
+        else:
+            with iso.open('rb') as source:
+                digest = hashlib.file_digest(source, 'sha256').hexdigest()
+            if iso.stat().st_size != ISO_BYTES or digest != ISO_SHA256:
+                raise ValueError('Existing media differs; never silently replace it')
+        result = dict(iso=str(iso), bytes=ISO_BYTES, sha256=digest)
+        print(json.dumps(result))
+        return
+
+    engine = Path(__file__).resolve().parents[2] / 'bin/usbless-dualboot'
+    saved_iso = MEDIA / 'source-media' / ISO_NAME
+    if args.step == 'stage' and saved_iso.exists():
+        raise ValueError('Previous source-media relocation exists; inspect instead of repeating staging')
+    env = dict(os.environ, USBDB_CONFIG=str(MEDIA / 'kubuntu-plan.json'),
+               USBDB_STATE_DIR=str(STATE / 'engine'))
+    commands = {
+        'plan': ['plan', '--add', 'linux', '--iso', str(iso), '--sha256', ISO_SHA256,
+                 '--linux-new-size', '22G', '--installer-size', '12G', '--write'],
+        'shrink': ['shrink'], 'stage': ['stage', '--os', 'linux'],
+        'boot-installer': ['boot', '--installer'],
+        'repair-preview': ['repair-carrier', '--iso', str(saved_iso), '--dry-run'],
+        'repair': ['repair-carrier', '--iso', str(saved_iso), '--confirm-rebuild-installer'],
+        'cleanup-preview': ['cleanup', '--installer-only', '--dry-run'],
+        'cleanup': ['cleanup', '--installer-only', '--confirm-both-booted'],
+    }
+    output = run_both('bash', engine, *commands[args.step], env=env)
+    (STATE / (args.step + '.log')).write_text(output + '\n')
+    result = dict(step=args.step, log=str(STATE / (args.step + '.log')),
+                  config=json.loads((MEDIA / 'kubuntu-plan.json').read_text()))
+    if args.step.startswith('cleanup'):
+        # The reviewed removal plan is the evidence for this step.
+        result['log_text'] = (STATE / (args.step + '.log')).read_text()[-4000:]
+    if args.step == 'stage':
+        # Casper the carrier must be the only match for iso-scan/filename.
+        if result['config'].get('stage_complete') != '1':
+            raise ValueError('Staging did not complete; retain the original ISO path')
+        saved_iso.parent.mkdir(exist_ok=True)
+        iso.rename(saved_iso)
+        result['preserved_source_iso'] = str(saved_iso)
     print(json.dumps(result))
 
 

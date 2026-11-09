@@ -21,7 +21,9 @@ def main():
     parser.add_argument('--source-sha256')
     parser.add_argument('--encrypted',action='store_true')
     parser.add_argument('--entry')
-    parser.add_argument('--lab-step',choices=['prepare','fetch','plan','shrink','stage','boot-installer','restore','cleanup-preview','cleanup','repair-preview','repair'])
+    parser.add_argument('--lab-step',choices=['prepare','fetch','plan','shrink','stage','boot-installer','restore',
+                                             'cleanup-preview','cleanup','repair-preview','repair',
+                                             'plan-windows','plan-dry-windows','shrink-offline-ext4','probe'])
     args=parser.parse_args()
     folder=directory(args.name,root/'.lab')
     config=json.loads((folder/'vm.json').read_text())

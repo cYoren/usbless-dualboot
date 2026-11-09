@@ -1,0 +1,49 @@
+{
+ "case": "installed ext4 shrink and boot",
+ "host_platform": "linux",
+ "date": "2026-11-09",
+ "status": "installed-system ext4 shrunk offline from another installed OS; shrunk system booted with unchanged data",
+ "clone_identity": {
+  "vm_uuid": "eb87c6bb-33aa-4b27-b27c-6a258efe7074",
+  "disk_guid": "0383d3f0-1e84-4e59-8c14-b2a1b504ec4f",
+  "disposable": true
+ },
+ "target": {
+  "device": "/dev/sda7",
+  "fstype": "ext4",
+  "installed_system": "Kubuntu 26.10",
+  "before_bytes_gib": 117.8,
+  "after_gib": 40
+ },
+ "procedure": [
+  "Ran `plan --add windows --linux-new-size 40G --write` on the installed ext4 system (Kubuntu), which recorded linux_part, filesystem UUID and the planned geometry.",
+  "Rebooted to the other installed system (Fedora) so the ext4 target was unmounted.",
+  "Ran `shrink --offline --iso <staged Windows media>` from Fedora using the shared plan on the lab partition."
+ ],
+ "measured": {
+  "filesystem_blocks_before": 30874880,
+  "filesystem_blocks_after": 10485760,
+  "filesystem_bytes_after": 42949672960,
+  "partition_sectors_before": 246999040,
+  "partition_sectors_after": 83886080,
+  "partition_end_sector_after": 348590079,
+  "recovery_metadata": "/mnt/usbdb-lab-media/state-windows/backups/shrink.xr7fks",
+  "engine_output_tail": "  264704000 511703039 246999040 117.8G Linux filesystem\n\n/dev/sda7: \nNew situation:\nDisklabel type: gpt\nDisk identifier: 0383D3F0-1E84-4E59-8C14-B2A1B504EC4F\n\nDevice         Start       End  Sectors  Size Type\n/dev/sda1       2048   1050623  1048576  512M EFI System\n/dev/sda2    1050624   1083391    32768   16M Microsoft reserved\n/dev/sda3    1083392  51415039 50331648   24G Linux filesystem\n/dev/sda4  214372352 218566655  4194304    2G Linux filesystem\n/dev/sda5  218566656 264703999 46137344   22G Linux filesystem\n/dev/sda7  264704000 348590079 83886080   40G Linux filesystem\n\nThe partition table has been altered.\n/dev/sda:\nNo errors detected.\nHeader version: 1.0\nUsing 6 out of 128 partitions.\nA total of 351240125 free sectors is available in 3 segments (the largest is 89.8 GiB).\nShrink plan:\n  filesystem: ext4 -> 42949672960 bytes (partition size 40G)\n  partition:  /dev/sda7 (7) ends at 348590079\nRecovery metadata: /mnt/usbdb-lab-media/state-windows/backups/shrink.xr7fks\nChecking unmounted ext4 filesystem health...\nShrinking ext4 to at most 42949672960 bytes...\nresize2fs 1.47.3 (8-Jul-2025)\nOffline ext4 shrink complete. Reboot before staging so the kernel adopts the new geometry."
+ },
+ "post_shrink_boot": {
+  "booted": true,
+  "root": "/dev/sda7",
+  "root_fstype": "ext4",
+  "sentinel_sha256": "198e3747fe8fc937035c294365db9454d77583c4a6b7696c52290d0128bbe177",
+  "sentinel_unchanged": true
+ },
+ "guard_observed": "A repeat plan targeting the already-shrunk size was refused with: 'Linux size must be positive and smaller than the current partition'.",
+ "limitations": [
+  "The shrink was executed from the other installed system, which is the documented offline route; no live-ISO boot was used for this step.",
+  "Single disk, unencrypted, Secure Boot disabled; LUKS-inside shrink remains covered only by the loop fixtures."
+ ],
+ "evidence": [
+  "docs/validation/linux-ext4-offline-plain.json",
+  "docs/validation/kubuntu-26.10-linux-install.json"
+ ]
+}
