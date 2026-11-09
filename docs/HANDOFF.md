@@ -1,5 +1,7 @@
 # Handoff: USBless Dualboot, 2026-11-02
 
+Status: current
+
 This is an active-work handoff requested by the user, not a finished release or wrap-up.
 Read this file before repeating any tests, downloads, builds or VM installation.
 

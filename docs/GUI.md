@@ -1,5 +1,7 @@
 # Graphical app
 
+Status: current
+
 The native Qt Quick app wraps the same Bash engine. It runs on Linux and has five screens:
 PC checks, ISO selection, exact plan review, installer preparation, and finishing/recovery.
 This interface runs on Linux. The separate Windows-native app has its own validation matrix.

@@ -1,5 +1,7 @@
 # Case study: <machine>
 
+Status: current
+
 ## Machine
 
 - Vendor / model:

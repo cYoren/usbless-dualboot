@@ -1,5 +1,7 @@
 # Secure Boot (Linux + Windows dual boot)
 
+Status: current
+
 Games like Valorant (Vanguard) require Windows 11 with Secure Boot and TPM 2.0 enabled. Enabling
 Secure Boot on a Linux-first machine means signing the Linux boot chain with your own keys while
 keeping Microsoft's keys so Windows still boots.

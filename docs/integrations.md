@@ -1,5 +1,7 @@
 # Framework integrations
 
+Status: current
+
 Two integrations live under `integrations/`. Both are **read-only descriptions or
 read-only companions** of the existing CLI. Neither rewrites the CLI, and neither
 one makes a disk installation work.

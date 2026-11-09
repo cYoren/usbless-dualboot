@@ -1,5 +1,7 @@
 # Offline ext4 shrink
 
+Status: current
+
 `shrink --offline` supports an unmounted ext4 filesystem, directly on its planned GPT
 partition or inside an already opened LUKS1/LUKS2 mapping. It never unmounts a running
 system, opens an encrypted volume, or reboots automatically.

@@ -1,5 +1,7 @@
 # Active development status: 2026-11-09
 
+Status: current
+
 ## Kubuntu 26.10 Linux-hosted case completed (latest)
 
 The large-ISO Linux path is now validated end to end on its disposable clone, not just to
@@ -31,6 +33,8 @@ checksums so those cases do not wait on downloads.
 
 ## Experimental development integration (2026-11-05)
 
+Superseded by the 2026-11-09 section above for installation, first boot and cleanup.
+
 The requested scope is merging development progress into the open-source main
 branch with limitations recorded, rather than completing the full acceptance
 matrix first. See PR #5 and the latest `docs/HANDOFF.md` checkpoint.
@@ -40,7 +44,7 @@ an explicit ownership-checked `repair-carrier` migrated the existing installer
 without repeating shrink/stage or changing GPT, OS data or EFI. Its real loop-image
 fixture and real clone repair passed. Kubuntu reached its live welcome/desktop,
 and loop backing major:minor confirmed that the ISO came from the owned NTFS
-carrier. Full installation was not started.
+carrier. At that checkpoint the installation had not been started.
 
 Known issue: normal live shutdown stalled with repeated loop0 WRITE I/O errors.
 The disposable clone was paused and stopped, retaining the failed disk state as

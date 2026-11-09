@@ -1,5 +1,7 @@
 # Open-source installation coverage and acceptance
 
+Status: current
+
 Objective: exceed the pinned Windows-installer baseline in validated coverage and recovery,
 while keeping the application, build scripts, test harness and distributable dependencies
 open-source. Installing Windows necessarily interacts with Microsoft's separately licensed OS;
