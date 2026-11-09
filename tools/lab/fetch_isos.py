@@ -83,6 +83,18 @@ def published(entry, directory, media, checksum):
     raise RuntimeError(f'{entry}: {media} is absent from {directory}{checksum}')
 
 
+def reject_partial(partial):
+    """Quarantine a transfer that completed but failed verification.
+
+    ``--continue-at`` resumes from the existing file, so a corrupt completed
+    download can never repair itself; keep the bytes as evidence under a
+    distinct name and let the next attempt start from scratch.
+    """
+    rejected = partial.with_name(partial.name + '.rejected-' + time.strftime('%Y%m%dT%H%M%SZ', time.gmtime()))
+    partial.rename(rejected)
+    return rejected
+
+
 def digest(path):
     value = hashlib.sha256()
     with path.open('rb') as stream:
@@ -106,8 +118,9 @@ def fetch(entry, root, retries):
         raise RuntimeError(f'{entry}: existing {media} differs from the recorded evidence')
     partial = folder / (media + '.part')
     for attempt in range(1, retries + 1):
-        subprocess.run(['curl', '-fsSL', '--no-progress-meter', '--retry', '5', '--retry-delay', '5', '--continue-at', '-',
-                        '--output', str(partial), directory + media], check=False)
+        completed = subprocess.run(['curl', '-fsSL', '--no-progress-meter', '--retry', '5', '--retry-delay', '5',
+                                    '--continue-at', '-', '--output', str(partial), directory + media],
+                                   check=False).returncode
         if partial.exists() and digest(partial) == expected:
             partial.rename(target)
             record.write_text(json.dumps({'entry': entry, 'url': directory + media, 'sha256': expected,
@@ -115,6 +128,12 @@ def fetch(entry, root, retries):
                                           'fetched_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())},
                                          indent=2) + '\n')
             return {'entry': entry, 'media': str(target), 'sha256': expected, 'state': 'fetched'}
+        if completed == 0 and partial.exists():
+            # A transfer that finished but fails verification is corrupt, not
+            # resumable: --continue-at would skip the same bad bytes forever.
+            rejected = reject_partial(partial)
+            return {'entry': entry, 'state': 'rejected', 'rejected': str(rejected),
+                    'bytes': rejected.stat().st_size, 'expected_sha256': expected}
         time.sleep(5 * attempt)
     size = partial.stat().st_size if partial.exists() else 0
     return {'entry': entry, 'state': 'incomplete', 'bytes': size, 'expected_sha256': expected}
