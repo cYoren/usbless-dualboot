@@ -21,9 +21,15 @@ def main():
     parser.add_argument('--source-sha256')
     parser.add_argument('--encrypted',action='store_true')
     parser.add_argument('--entry')
+    parser.add_argument('--distro')
+    parser.add_argument('--iso-name')
+    parser.add_argument('--size')
+    parser.add_argument('--seed-url')
     parser.add_argument('--lab-step',choices=['prepare','fetch','plan','shrink','stage','boot-installer','restore',
                                              'cleanup-preview','cleanup','repair-preview','repair',
-                                             'plan-windows','plan-dry-windows','shrink-offline-ext4','probe'])
+                                             'plan-windows','plan-dry-windows','shrink-offline-ext4','probe',
+                                             'chain-fetch','chain-plan','chain-shrink','chain-stage',
+                                             'chain-boot','chain-inspect'])
     args=parser.parse_args()
     folder=directory(args.name,root/'.lab')
     config=json.loads((folder/'vm.json').read_text())
@@ -34,7 +40,8 @@ def main():
     token=json.loads((args.seed/'agent.json').read_text())['token']
     with socket.create_connection(('127.0.0.1',int(config['agent_port'])),timeout=args.timeout) as connection:
         connection.sendall((json.dumps({'action':args.action,'token':token,'media_port':args.media_port,
-                                       'sentinel':args.sentinel,'plan_id':args.plan_id,'entry':args.entry,
+                                       'sentinel':args.sentinel,'plan_id':args.plan_id,'entry':args.entry,'distro':args.distro,'iso_name':args.iso_name,
+                                       'size':args.size,'seed_url':args.seed_url,
                                        'source_sha256':args.source_sha256,'encrypted':args.encrypted,
                                        'lab_step':args.lab_step,'vm_identity':config.get('uuid'),
                                        'vm_role':config.get('role')})+'\n').encode())
