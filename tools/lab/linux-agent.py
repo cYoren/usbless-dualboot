@@ -144,7 +144,7 @@ def test_ext4(request):
         if step not in ['prepare', 'fetch', 'plan', 'shrink', 'stage', 'boot-installer', 'restore',
                         'cleanup-preview', 'cleanup', 'repair-preview', 'repair',
                         'plan-windows', 'plan-dry-windows', 'shrink-offline-ext4', 'probe',
-                        'chain-fetch', 'chain-plan', 'chain-shrink', 'chain-stage', 'chain-boot', 'chain-inspect']:
+                        'chain-fetch', 'chain-plan', 'chain-shrink', 'chain-stage', 'chain-boot', 'chain-inspect', 'chain-free-media']:
             raise ValueError('Unknown Kubuntu lab step')
         args = [sys.executable, str(destination / 'tools/lab/case-linux-kubuntu.py'),
                 step, '--vm-identity', request['vm_identity'], '--media-port', str(port)]

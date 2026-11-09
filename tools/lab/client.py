@@ -29,7 +29,7 @@ def main():
                                              'cleanup-preview','cleanup','repair-preview','repair',
                                              'plan-windows','plan-dry-windows','shrink-offline-ext4','probe',
                                              'chain-fetch','chain-plan','chain-shrink','chain-stage',
-                                             'chain-boot','chain-inspect'])
+                                             'chain-boot','chain-inspect','chain-free-media'])
     args=parser.parse_args()
     folder=directory(args.name,root/'.lab')
     config=json.loads((folder/'vm.json').read_text())

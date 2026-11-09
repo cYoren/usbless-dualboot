@@ -252,7 +252,7 @@ def main():
                                          'repair-preview', 'repair', 'cleanup-preview', 'cleanup',
                                          'plan-windows', 'plan-dry-windows', 'shrink-offline-ext4', 'probe',
                                          'chain-fetch', 'chain-plan', 'chain-shrink', 'chain-stage',
-                                         'chain-boot', 'chain-inspect'])
+                                         'chain-boot', 'chain-inspect', 'chain-free-media'])
     parser.add_argument('--vm-identity', required=True)
     parser.add_argument('--media-port', type=int, default=8765)
     parser.add_argument('--distro')
@@ -262,7 +262,8 @@ def main():
     args = parser.parse_args()
     if not 1024 <= args.media_port <= 65535:
         raise ValueError('Invalid private media port')
-    incumbent = 'kubuntu' if args.step in ('plan-windows', 'plan-dry-windows', 'probe') else 'fedora'
+    incumbent = 'kubuntu' if args.step in ('plan-windows', 'plan-dry-windows', 'probe',
+                                           'chain-plan') else ('any' if args.step == 'chain-fetch' else 'fedora')
     disk, table = guarded_disk(args.vm_identity, incumbent)
     if args.step == 'prepare':
         result = prepare(args.vm_identity, disk, table)
@@ -282,7 +283,12 @@ def main():
         plan = folder / (args.distro + '-plan.json')
         state = folder / (args.distro + '-state')
         env = dict(os.environ, USBDB_CONFIG=str(plan), USBDB_STATE_DIR=str(state))
-        iso = Path('/var/tmp') / args.iso_name
+        # The media must live on the shared lab partition: the plan runs from the
+        # running system and the shrink/stage steps run from the other installed
+        # system, so a per-root /var/tmp file would not be visible to both.
+        iso_dir = MEDIA / 'chain'
+        iso_dir.mkdir(exist_ok=True)
+        iso = iso_dir / args.iso_name
         if args.step == 'chain-fetch':
             if iso.exists() and iso.stat().st_size > 0:
                 result = dict(step=args.step, iso=str(iso), bytes=iso.stat().st_size, reused=True)
@@ -293,8 +299,21 @@ def main():
             partial.rename(iso)
             result = dict(step=args.step, iso=str(iso), bytes=iso.stat().st_size)
             print(json.dumps(result)); return
-        if not iso.is_file():
+        if args.step != 'chain-free-media' and not iso.is_file():
             raise ValueError('The distro media was not fetched into this guest')
+        if args.step == 'chain-free-media':
+            # Reclaim the duplicate Kubuntu media copy that only Casper's discovery
+            # needed; the verified copy stays in the host cache and is re-fetchable.
+            duplicate = MEDIA / 'source-media'
+            freed = 0
+            if duplicate.is_dir():
+                for item in duplicate.iterdir():
+                    freed += item.stat().st_size
+                    item.unlink()
+                duplicate.rmdir()
+            result = dict(step=args.step, freed_bytes=freed,
+                          free_after=__import__('shutil').disk_usage(MEDIA).free)
+            print(json.dumps(result)); return
         if args.step == 'chain-plan':
             output = run_both('bash', engine, 'plan', '--add', 'linux', '--iso', iso,
                               '--linux-new-size', args.size, '--installer-size', '12G', '--write', env=env)
@@ -303,7 +322,7 @@ def main():
                 # unattended seed instead of interactive partitioning.
                 config = json.loads(plan.read_text())
                 params = config['linux_params'] = (f"boot=casper iso-scan/filename=/{args.iso_name} "
-                                                  f"autoinstall 'ds=nocloud-net;s={args.seed_url}' ---")
+                                                  f"autoinstall ds=nocloud-net;s={args.seed_url} ---")
                 plan.write_text(json.dumps(config, indent=2) + '\n')
             result = dict(step=args.step, log_text=output[-3000:], config=json.loads(plan.read_text()))
             print(json.dumps(result)); return
