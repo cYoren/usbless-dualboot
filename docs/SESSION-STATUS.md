@@ -2,7 +2,28 @@
 
 Status: current
 
-## Kubuntu 26.10 Linux-hosted case completed (latest)
+## Installed ext4 shrink and second disk (2026-11-09)
+
+The installed-system ext4 path is now validated on a real install, not only on loop
+fixtures. With Kubuntu 26.10 installed on ext4, a plan was written from that system,
+the other installed system (Fedora) was booted so the target was unmounted, and
+`shrink --offline` took the partition from 117.8 GiB to 40 GiB and the filesystem from
+30,874,880 to 10,485,760 blocks. Kubuntu then booted normally with its sentinel
+`198e3747…28bbe177` unchanged; recovery metadata was retained under
+`/mnt/usbdb-lab-media/state-windows/backups/`. A repeat plan at the current size is
+refused ("Linux size must be positive and smaller than the current partition").
+Record: `validation/linux-ext4-installed-shrink.json`.
+
+A separate read-only case attached a 32 GiB data disk. `probe` reported every disk and
+the correct system root, the dry plan selected only `/dev/sda`, and the data disk stayed
+partitionless. The Linux engine has no cross-disk target selector; installing onto a
+second disk exists on the Windows side and still needs its own evidence.
+Record: `validation/linux-second-disk.json`.
+
+Still pending: baseline distro coverage, Secure Boot, Windows encryption, failure/recovery
+dimensions, Windows-side second-disk evidence.
+
+## Kubuntu 26.10 Linux-hosted case completed
 
 The large-ISO Linux path is now validated end to end on its disposable clone, not just to
 the live desktop. Canonical media `kubuntu-26.10-desktop-amd64.iso` (SHA-256

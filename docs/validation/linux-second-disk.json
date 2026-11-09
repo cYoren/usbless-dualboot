@@ -1,0 +1,43 @@
+{
+ "case": "second disk present",
+ "host_platform": "linux",
+ "date": "2026-11-09",
+ "status": "read-only validation: detection and planning stay on the Linux root's disk; the data disk is untouched",
+ "setup": {
+  "system_disk": "/dev/sda",
+  "system_disk_gib": 256,
+  "data_disk": "/dev/sdb",
+  "data_disk_gib": 32,
+  "seed_disk": "/dev/sdc",
+  "data_disk_registered_as": "file-backed qcow2 inside the VM folder with serial USBDBLABDATA"
+ },
+ "probe": {
+  "uefi": "yes",
+  "secure_boot": "disabled",
+  "setup_mode": "disabled",
+  "bootloader": "grub",
+  "root_source": "/dev/sda7",
+  "root_fstype": "ext4",
+  "partitions_on_data_disk_after_probe": [],
+  "disks_seen": [
+   "/dev/sda",
+   "/dev/sdb",
+   "/dev/sdc"
+  ]
+ },
+ "plan": {
+  "selected_disk": "/dev/sda",
+  "linux_partition": "/dev/sda7",
+  "installer_partition_sectors": "511703040..536870878",
+  "space_for_target_os": "87 GiB (30G plan)",
+  "command": "plan --add windows --iso <staged media> --linux-new-size 30G (no --write)"
+ },
+ "measured": {
+  "engine_output": "warning: ISO fingerprint saved; authenticity has not been checked against the publisher\nusbless-dualboot plan (add-windows)\n-----------------------------------\nDisk:                 /dev/sda (536870912 sectors)\nLinux partition:      /dev/sda7 (starts at 264704000)\nLinux fstype:         ext4\nESP:                  /dev/sda1 mounted at /boot/efi\nBootloader:           unknown\nInstaller partition:  12G at sectors 511703040..536870878 (end of disk)\nLinux after shrink:   30G ending at 327618559\nSpace for target OS:  sectors 327618560..511703039 (87 GiB)\nISO:                  /mnt/usbdb-lab-media/win11-lab.iso\nSHA-256:              4fa6fe9500ce7166b22f8aa1705df89f7e69aa9065bda6535eefe711eed718d1\n\nThis is a DRY plan. Steps: shrink -> [reboot] -> stage -> boot --installer ->\n(install target OS) -> boot --restore. For Windows, then windows --add. Secure Boot is a separate optional workflow."
+ },
+ "finding": "The Linux engine selects the disk that holds the running Linux root (usbdb_detect) and has no cross-disk target selector; a second disk is detected and reported but never planned on, partitioned or written. Installing the target OS onto a second disk is implemented on the Windows side (Get-OtherDiskSteps) and is not validated by this case.",
+ "limitations": [
+  "Read-only case: it proves isolation and detection, not an installation onto a second disk.",
+  "Windows-side second-disk flow still needs its own VM evidence."
+ ]
+}

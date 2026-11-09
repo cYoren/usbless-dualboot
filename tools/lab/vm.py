@@ -193,6 +193,32 @@ def create(args, folder):
     print(json.dumps({"created": str(folder), "disk": str(folder / "system.qcow2")}))
 
 
+def add_disk(args, folder):
+    """Create one file-backed data disk for a second-disk case.
+
+    Registered in vm.json and only ever named by file, so the guest sees an extra
+    disk while the host exposes nothing but a regular file.
+    """
+    config_path = folder / 'vm.json'
+    config = json.loads(config_path.read_text())
+    if config.get('disposable') is not True:
+        raise ValueError('VM is not marked disposable')
+    if not re.fullmatch(r'[A-Z0-9]{1,20}', args.serial):
+        raise ValueError('Data disk serial must be uppercase letters and digits')
+    if not re.fullmatch(r'[1-9][0-9]{0,3}G', args.size):
+        raise ValueError('Data disk size must be a GiB quantity')
+    if any(disk.get('serial') == args.serial for disk in config.get('extra_disks', [])):
+        raise ValueError('A data disk with that serial already exists')
+    name = 'data-' + args.serial.lower() + '.qcow2'
+    target = folder / name
+    if target.exists():
+        raise ValueError('Data disk file already exists; inspect instead of overwriting')
+    command('qemu-img', ['create', '-f', 'qcow2', target, args.size])
+    config.setdefault('extra_disks', []).append({'file': name, 'serial': args.serial, 'size': args.size})
+    config_path.write_text(json.dumps(config, indent=2) + '\n')
+    print(json.dumps({'data_disk': str(target), 'serial': args.serial, 'size': args.size}))
+
+
 def start(args, folder):
     config = json.loads((folder / "vm.json").read_text())
     if config.get("disposable") is not True:
@@ -237,9 +263,21 @@ def start(args, folder):
         argv += ['-global', 'driver=cfi.pflash01,property=secure,value=on']
     # Both installation and testing naturally restart the guest several times.
     # Do not use -no-reboot even when booting an already installed system.
+    for index, extra in enumerate(config.get('extra_disks', [])):
+        # Additional data disks stay inside this private VM folder and are never
+        # host block devices, so a two-disk case cannot reach the host.
+        data = regular_file(folder / extra['file'])
+        if data.parent != folder.resolve():
+            raise ValueError('Data disks must remain inside their own VM directory')
+        serial = extra.get('serial', 'USBDBLABDATA')
+        if not re.fullmatch(r'[A-Z0-9]{1,20}', serial):
+            raise ValueError('Data disk serial must be uppercase letters and digits')
+        argv += ["-drive", f"if=none,id=extra{index},format=qcow2,file=" + str(data),
+                 "-device", f"ide-hd,drive=extra{index},bus=ide.{index + 1},serial=" + serial]
+    extra = len(config.get('extra_disks', []))
     if config.get("iso"):
         argv += ["-drive", "if=none,id=installer,format=raw,media=cdrom,readonly=on,file=" + str(regular_file(config["iso"])),
-                 "-device", "ide-cd,drive=installer,bus=ide.1", "-boot", "order=d,once=d,menu=on"]
+                 "-device", "ide-cd,drive=installer,bus=ide." + str(extra + 1), "-boot", "order=d,once=d,menu=on"]
     if config.get("seed"):
         argv += ["-device", "qemu-xhci,id=usb", "-drive", "if=none,id=seed,format=raw,file=" + str(regular_file(config["seed"])),
                  "-device", "usb-storage,drive=seed,removable=on"]
@@ -298,6 +336,10 @@ def main():
     create_parser.add_argument("--tpm", action="store_true")
     create_parser.add_argument('--secure-boot-capable', action='store_true',
                                help='Use Secure Boot-capable firmware (does not enroll keys)')
+    disk_parser = sub.add_parser("add-disk")
+    disk_parser.add_argument("name")
+    disk_parser.add_argument("--size", default="32G")
+    disk_parser.add_argument("--serial", default="USBDBLABDATA")
     start_parser = sub.add_parser("start")
     start_parser.add_argument("name")
     start_parser.add_argument("--offline", action="store_true")
@@ -324,6 +366,8 @@ def main():
         create(args, folder)
     elif args.action == "start":
         start(args, folder)
+    elif args.action == 'add-disk':
+        add_disk(args, folder)
     elif args.action == 'key':
         if not re.fullmatch(r'[a-z0-9_-]+',args.combination):
             raise ValueError('Invalid VM key combination')
