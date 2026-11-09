@@ -1,5 +1,7 @@
 # Active development status: 2026-11-05
 
+Status: current
+
 ## Experimental development integration (latest)
 
 The requested scope is merging development progress into the open-source main

@@ -1,5 +1,7 @@
 # Safety
 
+Status: current
+
 This tool performs destructive operations. It is built to fail closed.
 
 ## Policy

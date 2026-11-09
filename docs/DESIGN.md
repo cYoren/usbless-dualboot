@@ -1,5 +1,7 @@
 # Design
 
+Status: current
+
 ## Goals
 
 - **Universal enough to be useful:** UEFI/GPT, Btrfs and ext4, optional LUKS, and the three
