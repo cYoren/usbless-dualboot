@@ -16,6 +16,6 @@
   "autoinstall": "NOT engaged: no seed request reached the lab server and the installer waited for input"
  },
  "diagnosis": "The plan's lab-only boot parameters ended with a nocloud-net source URL without a trailing slash (ds=nocloud-net;s=http://10.0.2.2:8770/autoinstall/ubuntu). cloud-init appends 'user-data' to that value, so the seed could not be fetched and the installer fell back to interactive mode.",
- "next": "Rewrite linux_params with a trailing-slash seed URL, re-stage (the carrier and EFI loader are rebuilt from the plan), boot and confirm the seed is fetched before the installer starts.",
+ "next": "Rewrite linux_params with a trailing-slash seed URL (chain.py now does), remove the current carrier with the product's own `cleanup --installer-only`, re-stage and boot; the loader and carrier are rebuilt from the plan.",
  "status": "installer-booted, unattended install not established"
 }

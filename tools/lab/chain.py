@@ -132,7 +132,9 @@ def main():
             if not names:
                 raise RuntimeError(f'{distro}: no verified media in the cache')
             iso_name = names[0]
-            seed_url = f'http://10.0.2.2:{args.media_port}/autoinstall/{distro}'
+            # cloud-init appends 'user-data' to the nocloud-net source, so the
+            # seed URL must end with a slash or the seed is never fetched.
+            seed_url = f'http://10.0.2.2:{args.media_port}/autoinstall/{distro}/'
             record['iso'] = iso_name
             record['fetch'] = send(args.vm, 'linux-kubuntu', lab_step='chain-fetch', media_port=args.media_port,
                                    distro=distro, iso_name=iso_name)['result']
