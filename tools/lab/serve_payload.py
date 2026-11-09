@@ -6,6 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import shutil
 import io
+import json
 import tarfile
 import re
 
@@ -94,6 +95,37 @@ def main():
                     f'curl -fsS http://10.0.2.2:{args.port}/linux-agent.py -o "$agent"\n'
                     f'printf "%s  %s\\n" "{linux_hash}" "$agent" | sha256sum -c -\n'
                     'sudo unshare --mount --propagation private python3 "$agent"\n').encode()
+    media_dir = REPO / '.lab/cache/isos'
+    seed_dir = REPO / '.lab/seeds/autoinstall'
+
+    verified = {}
+
+    def verified_media(name):
+        """Serve only media with a recorded, matching publisher checksum.
+
+        Hashing a multi-gigabyte image on every request would dominate the
+        transfer, so each file is verified once per server process.
+        """
+        if name in verified:
+            return verified[name]
+        if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._+-]{0,120}\.iso', name):
+            return None
+        for candidate in media_dir.glob('*/' + name):
+            record = candidate.parent / 'media.json'
+            if not record.is_file():
+                continue
+            try:
+                expected = json.loads(record.read_text())['sha256']
+            except (KeyError, ValueError):
+                continue
+            if candidate.is_file():
+                with candidate.open('rb') as stream:
+                    if hashlib.file_digest(stream, 'sha256').hexdigest() == expected:
+                        verified[name] = candidate
+                        return candidate
+        verified[name] = None
+        return None
+
     engine = engine_bundle()
     engine_hash = hashlib.sha256(engine).hexdigest().encode()
 
@@ -111,8 +143,22 @@ def main():
                 self.send_header('Content-Length', str(len(data)))
                 self.end_headers()
                 self.wfile.write(data)
-            elif self.path in files:
-                file = files[self.path]
+            elif self.path.startswith('/autoinstall/'):
+                name = self.path[len('/autoinstall/'):]
+                if not re.fullmatch(r'[a-z0-9-]{2,32}/(user-data|meta-data)', name):
+                    self.send_error(404)
+                    return
+                candidate = seed_dir / name
+                if not candidate.is_file():
+                    self.send_error(404)
+                    return
+                data = candidate.read_bytes()
+                self.send_response(200)
+                self.send_header('Content-Length', str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+            elif self.path in files or (self.path.startswith('/iso/') and verified_media(self.path[5:])):
+                file = files[self.path] if self.path in files else verified_media(self.path[5:])
                 size = file.stat().st_size
                 start, end = 0, size - 1
                 requested = self.headers.get('Range')

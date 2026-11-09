@@ -1,0 +1,21 @@
+{
+ "case": "distro breadth chain",
+ "attempted_at": "2026-11-09T22:21:30Z",
+ "distro": "ubuntu",
+ "media": {
+  "file": "ubuntu-26.04.1-desktop-amd64.iso",
+  "bytes": 6482409472,
+  "sha256": "601e30fbf5d97759367c632e2c33630665039b7e2158fd068403da3ccf1bda1f"
+ },
+ "driven_by": "engine plan -> shrink --offline -> stage -> boot --installer, on the Kubuntu/Fedora clone",
+ "observed": {
+  "plan": "add-linux, 30G incumbent, 87 GiB target region, instalments carrier 12G at the end of disk",
+  "shrink": "installed ext4 root 40G -> 30G, recovery metadata on the shared partition",
+  "stage": "carrier /dev/sda8 (12G NTFS) created, ISO copied, standalone GRUB at \\EFI\\usbless\\grubx64.efi, firmware entry 000C",
+  "boot": "internal carrier started the Ubuntu live system; graphical installer opened at the language page",
+  "autoinstall": "NOT engaged: no seed request reached the lab server and the installer waited for input"
+ },
+ "diagnosis": "The plan's lab-only boot parameters ended with a nocloud-net source URL without a trailing slash (ds=nocloud-net;s=http://10.0.2.2:8770/autoinstall/ubuntu). cloud-init appends 'user-data' to that value, so the seed could not be fetched and the installer fell back to interactive mode.",
+ "next": "Rewrite linux_params with a trailing-slash seed URL (chain.py now does), remove the current carrier with the product's own `cleanup --installer-only`, re-stage and boot; the loader and carrier are rebuilt from the plan.",
+ "status": "installer-booted, unattended install not established"
+}

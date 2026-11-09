@@ -143,10 +143,15 @@ def test_ext4(request):
         step = request.get('lab_step')
         if step not in ['prepare', 'fetch', 'plan', 'shrink', 'stage', 'boot-installer', 'restore',
                         'cleanup-preview', 'cleanup', 'repair-preview', 'repair',
-                        'plan-windows', 'plan-dry-windows', 'shrink-offline-ext4', 'probe']:
+                        'plan-windows', 'plan-dry-windows', 'shrink-offline-ext4', 'probe',
+                        'chain-fetch', 'chain-plan', 'chain-shrink', 'chain-stage', 'chain-boot', 'chain-inspect', 'chain-free-media', 'chain-relocate-iso']:
             raise ValueError('Unknown Kubuntu lab step')
         args = [sys.executable, str(destination / 'tools/lab/case-linux-kubuntu.py'),
                 step, '--vm-identity', request['vm_identity'], '--media-port', str(port)]
+        for option, key in (('--distro', 'distro'), ('--iso-name', 'iso_name'),
+                            ('--size', 'size'), ('--seed-url', 'seed_url')):
+            if request.get(key):
+                args += [option, str(request[key])]
     if fixture == 'case-linux-ext4.sh' and request.get('encrypted') is True:
         args.append('--luks')
     result = subprocess.run(args,

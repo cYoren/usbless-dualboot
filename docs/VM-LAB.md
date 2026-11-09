@@ -104,6 +104,27 @@ Verified media is reused and never re-downloaded. A transfer that finishes with 
 checksum is moved aside as `*.part.rejected-<stamp>` so the next attempt starts clean;
 an interrupted transfer keeps its `.part` for resumption. Nothing is deleted.
 
+### Breadth chain
+
+```bash
+python tools/lab/chain.py ubuntu xubuntu fedora debian   # records .lab/logs/chain.json
+```
+
+Each case gets its own plan and phase state on the shared lab partition, fetches the
+already-verified ISO from the host over `:8770/iso/<name>` and boots the installer with that
+installer's unattended seed (`:8770/autoinstall/<distro>/user-data`). Engines without a seed
+template are recorded as `unsupported-engine` rather than claimed.
+
+Rules that bite:
+
+- Restart the payload server after editing `tools/lab/linux-agent.py`; `linux.sh` pins the
+  agent hash it computed at startup.
+- The guest agent blocks the tty while it listens — typed keys pile up until it exits.
+- `ds=nocloud-net;s=<url>` must end with a slash, or cloud-init never fetches `user-data`.
+- A staged carrier cannot be re-staged; remove it with `cleanup --installer-only` first.
+- ext4 incumbents: plan where the system runs, shrink `--offline --iso <plan media>` from the
+  other installed system, so one case spans one reboot.
+
 Installed-system switching needs no typed shell command: the Linux lab agent exposes an
 allowlisted `boot-entry` action.
 

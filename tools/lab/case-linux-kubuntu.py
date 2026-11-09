@@ -10,6 +10,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import uuid
@@ -249,18 +250,102 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('step', choices=['prepare', 'fetch', 'plan', 'shrink', 'stage', 'boot-installer',
                                          'repair-preview', 'repair', 'cleanup-preview', 'cleanup',
-                                         'plan-windows', 'plan-dry-windows', 'shrink-offline-ext4', 'probe'])
+                                         'plan-windows', 'plan-dry-windows', 'shrink-offline-ext4', 'probe',
+                                         'chain-fetch', 'chain-plan', 'chain-shrink', 'chain-stage',
+                                         'chain-boot', 'chain-inspect', 'chain-free-media',
+                                         'chain-relocate-iso'])
     parser.add_argument('--vm-identity', required=True)
     parser.add_argument('--media-port', type=int, default=8765)
+    parser.add_argument('--distro')
+    parser.add_argument('--iso-name')
+    parser.add_argument('--size', default='30G')
+    parser.add_argument('--seed-url')
     args = parser.parse_args()
     if not 1024 <= args.media_port <= 65535:
         raise ValueError('Invalid private media port')
-    incumbent = 'kubuntu' if args.step in ('plan-windows', 'plan-dry-windows', 'probe') else 'fedora'
+    incumbent = 'kubuntu' if args.step in ('plan-windows', 'plan-dry-windows', 'probe',
+                                           'chain-plan') else ('any' if args.step == 'chain-fetch' else 'fedora')
     disk, table = guarded_disk(args.vm_identity, incumbent)
     if args.step == 'prepare':
         result = prepare(args.vm_identity, disk, table)
         print(json.dumps(result))
         return
+    if args.step.startswith('chain-'):
+        # Breadth chain: one independent plan/state per distro, ISO fetched from the
+        # host's verified cache, install driven by the installer's own unattended seed.
+        if not args.distro or not re.fullmatch(r'[a-z0-9-]{2,32}', args.distro):
+            raise ValueError('A safe distro id is required')
+        if not args.iso_name or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._+-]{0,120}\.iso', args.iso_name):
+            raise ValueError('A safe ISO name is required')
+        ensure_lab_media()
+        engine = Path(__file__).resolve().parents[2] / 'bin/usbless-dualboot'
+        folder = MEDIA / 'chain'
+        folder.mkdir(exist_ok=True)
+        plan = folder / (args.distro + '-plan.json')
+        state = folder / (args.distro + '-state')
+        env = dict(os.environ, USBDB_CONFIG=str(plan), USBDB_STATE_DIR=str(state))
+        # The media must live on the shared lab partition: the plan runs from the
+        # running system and the shrink/stage steps run from the other installed
+        # system, so a per-root /var/tmp file would not be visible to both.
+        iso_dir = MEDIA / 'chain'
+        iso_dir.mkdir(exist_ok=True)
+        iso = iso_dir / args.iso_name
+        if args.step == 'chain-fetch':
+            if iso.exists() and iso.stat().st_size > 0:
+                result = dict(step=args.step, iso=str(iso), bytes=iso.stat().st_size, reused=True)
+                print(json.dumps(result)); return
+            partial = iso.with_suffix('.iso.part')
+            run('curl', '--fail', '--location', '--continue-at', '-', '--output', partial,
+                f'http://10.0.2.2:{args.media_port}/iso/{args.iso_name}')
+            partial.rename(iso)
+            result = dict(step=args.step, iso=str(iso), bytes=iso.stat().st_size)
+            print(json.dumps(result)); return
+        if args.step != 'chain-free-media' and not iso.is_file():
+            raise ValueError('The distro media was not fetched into this guest')
+        if args.step == 'chain-free-media':
+            # Reclaim the duplicate Kubuntu media copy that only Casper's discovery
+            # needed; the verified copy stays in the host cache and is re-fetchable.
+            duplicate = MEDIA / 'source-media'
+            freed = 0
+            if duplicate.is_dir():
+                for item in duplicate.iterdir():
+                    freed += item.stat().st_size
+                    item.unlink()
+                duplicate.rmdir()
+            result = dict(step=args.step, freed_bytes=freed,
+                          free_after=__import__('shutil').disk_usage(MEDIA).free)
+            print(json.dumps(result)); return
+        if args.step == 'chain-relocate-iso':
+            # The plan was written where the media lived at the time; the shrink and
+            # stage steps run from the other installed system, so record the shared
+            # path while keeping the plan's saved fingerprint authoritative.
+            config = json.loads(plan.read_text())
+            if config.get('iso_sha256') != hashlib.file_digest(iso.open('rb'), 'sha256').hexdigest():
+                raise ValueError('Relocated media does not match the plan fingerprint')
+            config['iso'] = str(iso)
+            plan.write_text(json.dumps(config, indent=2) + '\n')
+            result = dict(step=args.step, iso=str(iso), sha256=config['iso_sha256'])
+            print(json.dumps(result)); return
+        if args.step == 'chain-plan':
+            output = run_both('bash', engine, 'plan', '--add', 'linux', '--iso', iso,
+                              '--linux-new-size', args.size, '--installer-size', '12G', '--write', env=env)
+            if args.seed_url:
+                # Lab-only boot parameters: the installer runs from its own
+                # unattended seed instead of interactive partitioning.
+                config = json.loads(plan.read_text())
+                params = config['linux_params'] = (f"boot=casper iso-scan/filename=/{args.iso_name} "
+                                                  f"autoinstall ds=nocloud-net;s={args.seed_url} ---")
+                plan.write_text(json.dumps(config, indent=2) + '\n')
+            result = dict(step=args.step, log_text=output[-3000:], config=json.loads(plan.read_text()))
+            print(json.dumps(result)); return
+        # The ext4 incumbent is unmounted from this side of the reboot, so the
+        # filesystem step must run offline against the media recorded in the plan.
+        commands = {'chain-shrink': ['shrink', '--offline', '--iso', str(iso)],
+                    'chain-stage': ['stage', '--os', 'linux'],
+                    'chain-boot': ['boot', '--installer'], 'chain-inspect': ['status']}
+        output = run_both('bash', engine, *commands[args.step], env=env)
+        result = dict(step=args.step, log_text=output[-3000:], config=json.loads(plan.read_text()))
+        print(json.dumps(result)); return
     if args.step == 'probe':
         engine = Path(__file__).resolve().parents[2] / 'bin/usbless-dualboot'
         output = run('bash', engine, 'probe', '--json')

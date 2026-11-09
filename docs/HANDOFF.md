@@ -5,6 +5,83 @@ Status: current
 This is an active-work handoff requested by the user, not a finished release or wrap-up.
 Read this file before repeating any tests, downloads, builds or VM installation.
 
+## Breadth chain: state at the end of the 2026-11-09 session
+
+Read this first if you are resuming the 18-distro sweep.
+
+### What is proven
+- Kubuntu 26.10 Linux-hosted install, first boot, incumbent preservation, cleanup:
+  `validation/kubuntu-26.10-linux-install.json` (PR #7, merged).
+- Installed ext4 root shrunk 117.8 -> 40 GiB offline and booted again; second-disk
+  isolation: `validation/linux-ext4-installed-shrink.json`, `validation/linux-second-disk.json`
+  (PR #8, merged).
+- Breadth chain drove one case through plan -> offline shrink -> stage -> boot: Ubuntu
+  26.04.1's installer started from the internal carrier with no ISO attached to QEMU.
+  The unattended seed was NOT fetched (see the bug below), so it is recorded as
+  `installer-booted`, not installed: `validation/chain-ubuntu-26.04.json`.
+
+### Exact state of the lab (do not re-derive)
+VM `.lab/vms/linux-kubuntu` (clone `eb87c6bb-33aa-4b27-b27c-6a258efe7074`, stopped):
+- `/dev/sda1` 512M ESP (vfat, label USBDBLABEFI, mount `/boot/efi`)
+- `/dev/sda3` 24 GiB lab media (ext4, label USBDBLABMEDIA, mount `/mnt/usbdb-lab-media`),
+  **15.4 GB free**; holds `win11-lab.iso` (8.5 GB, the user's media copy), the Kubuntu
+  ISO, `chain/ubuntu-26.04.1-desktop-amd64.iso` (6.48 GB), `windows-plan.json`,
+  `chain/ubuntu-plan.json`, and `chain/ubuntu-state/`
+- `/dev/sda4` 2 GiB Fedora `/boot`, `/dev/sda5` 22 GiB Fedora Btrfs root
+- `/dev/sda7` **30 GiB ext4 Kubuntu root** (shrunk from 40 today; chain plan target)
+- `/dev/sda8` 12 GiB NTFS carrier `LINUXINST` holding the Ubuntu ISO, with
+  `\EFI\usbless\grubx64.efi` and firmware entry `000C Linux Installer`
+- Firmware: `000A Fedora`, `000B Kubuntu` (BootOrder first), `0009` stale Windows entry.
+  `0003` was removed by the completed cleanup.
+- The duplicate Kubuntu media copy under `source-media/` was removed through the
+  `chain-free-media` step to make room; the verified copy stays in the host cache.
+
+### The bug that stopped the first install
+The lab-only boot parameters ended with
+`ds=nocloud-net;s=http://10.0.2.2:8770/autoinstall/ubuntu` (no trailing slash). cloud-init
+appends `user-data` to that value, fetched nothing, and the installer opened interactively.
+`tools/lab/chain.py` now always emits the trailing slash. **A staged carrier cannot be
+re-staged** (`stage-linux.sh` refuses an existing carrier and `EFI/usbless`), so the next
+run must first remove it with the product's own command.
+
+### Next commands, in order
+```bash
+# 1. guest agent (see the lab rules below), then:
+python tools/lab/client.py linux-kubuntu linux-kubuntu --lab-step cleanup-preview \
+  --source-sha256 "$(curl -fsS http://127.0.0.1:8770/engine.sha256 | awk '{print $1}')" \
+  --media-port 8770
+python tools/lab/client.py linux-kubuntu linux-kubuntu --lab-step cleanup \
+  --source-sha256 "<same hash>" --media-port 8770      # needs --confirm-both-booted semantics
+# 2. re-stage with the corrected seed URL (plan params already carry the old one; rewrite first)
+# 3. schedule and reboot; the success signal is /autoinstall/<distro>/user-data in
+#    /tmp/payload-8770.log, i.e. cloud-init actually fetched the seed
+```
+`tools/lab/chain.py` runs the queue and writes `.lab/logs/chain.json`; it marks any distro
+whose engine has no seed template as `unsupported-engine` on purpose.
+
+### Lab rules learned the hard way (2026-11-09)
+- **Restart the payload server whenever `tools/lab/linux-agent.py` changes.** `linux.sh`
+  embeds the agent hash at startup; a stale server makes the guest's `sha256sum -c` fail.
+- The guest agent runs in the foreground of a tty and **swallows typed keys while it
+  listens**. Ctrl-C it, then bootstrap again. Typing into it looks like nothing happened.
+- Type the sudo password **only after the prompt appears**. If sudo does not prompt, the
+  text lands in the shell, is echoed on screen and lands in screenshots. This happened
+  twice; the throwaway lab password is in local screenshots, so rotate it in
+  `.lab/seeds/windows-base/credentials.json` before reusing this image elsewhere.
+- The plan records an absolute ISO path. When media moves to the shared lab partition use
+  `chain-relocate-iso`; `shrink`/`stage` run from the *other* installed system and cannot
+  see a per-root `/var/tmp`.
+- ext4 incumbents: plan from the running system, shrink **`--offline --iso <plan media>`**
+  from the other installed system; each chain case therefore spans one reboot.
+- Media must be on the shared partition; the 24 GiB lab partition only holds one desktop
+  ISO at a time, so delete (`chain-free-media` pattern) between cases; the host cache in
+  `.lab/cache/isos` is authoritative and already verified.
+
+### Remaining acceptance work
+Baseline distro coverage (18 cases, media already verified locally), Secure Boot
+(enroll/verify), Windows encryption (BitLocker), failure/recovery dimensions, Windows-side
+second-disk evidence. "Hardware proven" cannot be produced in a VM.
+
 ## Resumed work: 2026-11-09 (latest)
 
 - **Kubuntu 26.10 Linux-hosted case is now complete end to end.** Evidence:
