@@ -2,6 +2,22 @@
 
 Status: current
 
+## Breadth chain in progress (2026-11-09, end of session)
+
+`tools/lab/chain.py` plus per-distro seeds drive the 18-distro sweep. One case was carried
+through `plan -> shrink --offline -> stage -> boot`: the Ubuntu 26.04.1 installer started
+from the internal 12 GiB NTFS carrier with no ISO attached to QEMU. The unattended seed was
+not fetched because the lab boot parameters lost the trailing slash on the nocloud-net URL;
+the installer opened interactively. That is fixed in `chain.py` and the attempt is recorded
+as `installer-booted` only (`validation/chain-ubuntu-26.04.json`). A staged carrier cannot
+be re-staged, so the next run starts with the product's `cleanup --installer-only`.
+
+All 18 publisher ISOs are verified locally in `.lab/cache/isos` (70 GB, `fetch_isos.py`
+reports 18/18 reused, no re-download). `docs/HANDOFF.md` carries the exact disk layout,
+firmware entries, lab-media free space, the bug, the next commands and the lab rules learned
+today (agent hash restart, agent swallowing keys, password prompt ordering, plan ISO
+relocation, offline ext4 across the reboot).
+
 ## Installed ext4 shrink and second disk (2026-11-09)
 
 The installed-system ext4 path is now validated on a real install, not only on loop
