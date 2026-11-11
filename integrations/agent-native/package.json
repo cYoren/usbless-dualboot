@@ -17,10 +17,40 @@
   },
   "dependencies": {
     "@agent-native/core": "0.189.0",
-    "zod": "^4.3.6"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "esbuild": "^0.28.0",
     "typescript": "^5.7.0"
+  },
+  "overrides": {
+    "better-auth": "1.7.7",
+    "@better-auth/core": "1.7.7",
+    "@better-auth/sso": "1.7.7",
+    "@better-auth/scim": "1.7.7",
+    "@better-auth/drizzle-adapter": "1.7.7",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@modelcontextprotocol/core": "2.3.0",
+    "@modelcontextprotocol/client": "2.3.0",
+    "@modelcontextprotocol/server": "2.3.0",
+    "@tiptap/core": "3.30.5",
+    "pdfjs-dist": "6.2.108",
+    "sharp": "0.35.5",
+    "undici": "7.30.1",
+    "uuid": "11.1.1",
+    "@anthropic-ai/sdk": "0.91.1",
+    "@azure/msal-node": "7.1.0",
+    "follow-redirects": "1.16.2",
+    "fast-uri": "4.2.3",
+    "fast-xml-parser": "5.12.0",
+    "markdown-it": "14.3.3",
+    "hono": "4.13.16",
+    "@hono/node-server": "2.1.6",
+    "ip-address": "10.7.6",
+    "body-parser": "2.4.0",
+    "qs": "6.17.1",
+    "source-map-js": "1.2.2",
+    "glob": "14.0.3",
+    "zod": "^4.6.6"
   }
 }
