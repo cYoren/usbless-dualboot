@@ -21,6 +21,10 @@ check() {
   fi
 }
 rejects() { if "$@"; then return 1; else return 0; fi; }
+# In-process guards call `die`, which exits the calling shell: run them isolated.
+refuses() { if "$@" >"$TMP/check-output" 2>&1; then return 1; else return 0; fi; }
+# Capture the guard's own message where a following check can read it.
+refuses_logged() { if ( "$@" ) >"$TMP/refusal" 2>&1; then return 1; else return 0; fi; }
 equal() { [[ $1 == "$2" ]]; }
 CLI="$ROOT/bin/usbless-dualboot"
 printf 'test ISO payload\n' > "$TMP/test.iso"
@@ -110,6 +114,26 @@ check 'scheduled is not assumed installed' bash -c '"$1" status --json | jq -e '
 cfg_set boot_restored 1
 check 'restored status' bash -c '"$1" status --json | jq -e '\''.state == "boot_restored"'\''' _ "$CLI"
 check 'Secure Boot dry-run' "$CLI" secureboot --enroll --dry-run
+# The generated add-linux GRUB is unsigned. Firmware policy decides whether it can run.
+# Drop the deliberately duplicated entry from the ambiguity check above.
+awk '!seen[$0]++' "$USBDB_TEST_ENTRIES" > "$TMP/entries.dedup" && mv "$TMP/entries.dedup" "$USBDB_TEST_ENTRIES"
+cfg_set direction add-linux; cfg_set installer_partuuid INSTALLER-3
+secure_boot_state() { printf '%s' "${FAKE_SB:-disabled}"; }
+check 'unsigned loader allowed when Secure Boot is off' assert_unsigned_loader_bootable 'test loader'
+FAKE_SB=enabled
+check 'unsigned loader refused when Secure Boot enforces' refuses_logged assert_unsigned_loader_bootable 'test loader'
+check 'refusal names the Secure Boot cause' grep -qi 'Secure Boot is enabled' "$TMP/refusal"
+FAKE_SB=enabled
+check 'explicit acknowledgement permits the unsigned loader' assert_unsigned_loader_bootable 'test loader' --acknowledge-unsigned
+check 'acknowledgement warns about the firmware refusal' grep -qi 'unsigned' "$TMP/output"
+FAKE_SB=unknown
+check 'unknown Secure Boot state refuses an unsigned loader' refuses_logged assert_unsigned_loader_bootable 'test loader'
+FAKE_SB=enabled
+check 'installer boot dry-run reports the refusal without failing' "$CLI" boot --installer --dry-run
+check 'dry-run refusal is a warning, not a change' grep -qi 'would refuse' "$TMP/output"
+check 'dry-run refusal made no firmware writes' test ! -s "$USBDB_TEST_BOOT_WRITES"
+check 'unsigned boot is refused without acknowledgement' rejects "$CLI" boot --installer
+unset -f secure_boot_state
 mkdir -p "$TMP/esp/EFI/Microsoft/Boot"
 touch "$TMP/esp/EFI/Microsoft/Boot/bootmgfw.efi"
 cfg_set esp_mount "$TMP/esp"; cfg_set bootloader systemd-boot

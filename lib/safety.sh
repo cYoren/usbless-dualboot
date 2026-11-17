@@ -128,3 +128,47 @@ save_boot_order() {
   [[ $order =~ ^[[:xdigit:]]{4}(,[[:xdigit:]]{4})*$ ]] || die "could not read original UEFI boot order"
   cfg_set original_boot_order "$order"
 }
+
+# --- Secure Boot gate for unsigned loaders ------------------------------------
+# Reads firmware state without changing it. Prints enabled|disabled|unknown.
+secure_boot_state() {
+  local var value
+  var=$(ls /sys/firmware/efi/efivars/SecureBoot-* 2>/dev/null | head -1 || true)
+  [[ -n $var ]] || { printf 'unknown'; return 0; }
+  value=$(od -An -t u1 -j4 -N1 "$var" 2>/dev/null | tr -d ' \n') || { printf 'unknown'; return 0; }
+  if [[ $value == 1 ]]; then printf 'enabled'; else printf 'disabled'; fi
+}
+
+# Refuse to schedule an unsigned loader while firmware enforces Secure Boot unless
+# the operator passes an explicit, recorded acknowledgement. Never silently proceeds:
+# a wrong boot throws the machine into firmware settings, and users read that as a crash.
+# Usage: assert_unsigned_loader_bootable LOADER_DESCRIPTION [--acknowledge-unsigned] [--preview]
+# `--preview` reports the same verdict without failing, so a dry run stays a dry run.
+assert_unsigned_loader_bootable() {
+  local what=$1 acknowledge=${2:-} preview=${3:-} state message
+  state=$(secure_boot_state)
+  case $state in
+    disabled) return 0 ;;
+    enabled)
+      if [[ $acknowledge == --acknowledge-unsigned ]]; then
+        warn "Secure Boot is enforcing signatures and $what is unsigned."
+        warn "The firmware will most likely refuse this boot and return to its own menu."
+        warn "Prefer 'secureboot --prep' plus 'secureboot --enroll', or disable Secure Boot. Proceeding because --acknowledge-unsigned was given."
+        return 0
+      fi
+      message="Secure Boot is enabled and $what is unsigned. Sign it first (secureboot --prep), disable Secure Boot in firmware, or re-run with --acknowledge-unsigned after reading the warning."
+      if [[ $preview == --preview ]]; then warn "would refuse: $message"; return 0; fi
+      die "$message"
+      ;;
+    *)
+      message="cannot read Secure Boot state; refusing to schedule an unsigned $what without knowing the firmware policy (re-run with --acknowledge-unsigned to override)"
+      if [[ $preview == --preview ]]; then warn "would refuse: $message"; return 0; fi
+      die "$message"
+      ;;
+  esac
+}
+
+# True when the plan's generated loader is a usbless-owned unsigned GRUB.
+plan_loader_is_unsigned() {
+  [[ $(cfg_get '.direction // empty') == add-linux ]]
+}

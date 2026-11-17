@@ -7,6 +7,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$HERE/common.sh"
 source "$HERE/ownership.sh"
 source "$HERE/carrier.sh"
+source "$HERE/families.sh"
 
 DRY=0
 while (($#)); do
@@ -18,7 +19,7 @@ while (($#)); do
 done
 
 cfg_exists || die "no plan/config; run 'plan --add linux ... --write' first"
-need_cmd sfdisk; need_cmd jq; need_cmd mount
+need_cmd sfdisk; need_cmd jq; need_cmd mount; need_cmd blkid
 
 DISK=$(cfg_get .disk)
 ISO=$(cfg_get .iso)
@@ -67,32 +68,29 @@ mount -o loop,ro "$ISO" "$ISO_MNT"
 find_first() { local p; for p in "$@"; do [[ -f "$ISO_MNT/$p" ]] && { printf '/%s' "$p"; return; }; done; return 0; }
 rel() { printf '/%s' "${1#"$ISO_MNT"/}"; }
 
-KERNEL=""; INITRD=""; FAMILY=generic
-if [[ -d $ISO_MNT/casper ]]; then
-  FAMILY=casper;  KERNEL=$(find_first casper/vmlinuz casper/vmlinuz.efi); INITRD=$(find_first casper/initrd casper/initrd.lz casper/initrd.img)
-elif [[ -d $ISO_MNT/live ]]; then
-  FAMILY=live;    KERNEL=$(find_first live/vmlinuz live/vmlinuz.efi); INITRD=$(find_first live/initrd.img live/initrd)
-elif [[ -d $ISO_MNT/arch ]]; then
-  FAMILY=arch;    KERNEL=$(find_first arch/boot/x86_64/vmlinuz-linux arch/boot/x86_64/vmlinuz); INITRD=$(find_first arch/boot/x86_64/initramfs-linux.img)
-elif [[ -d $ISO_MNT/images/pxeboot ]]; then
-  FAMILY=fedora;  KERNEL=$(find_first images/pxeboot/vmlinuz); INITRD=$(find_first images/pxeboot/initrd.img)
-elif [[ -d $ISO_MNT/boot/x86_64/loader ]]; then
-  FAMILY=opensuse; KERNEL=$(find_first boot/x86_64/loader/linux); INITRD=$(find_first boot/x86_64/loader/initrd)
-elif [[ -f $ISO_MNT/boot/bzImage || -f $ISO_MNT/boot/initrd ]]; then
-  FAMILY=nixos;   KERNEL=$(find_first boot/bzImage); INITRD=$(find_first boot/initrd)
-elif [[ -f $ISO_MNT/isolinux/gentoo ]]; then
-  FAMILY=gentoo;  KERNEL=$(find_first isolinux/gentoo); INITRD=$(find_first isolinux/gentoo.igz)
-else
-  KERNEL=$(find_first install.amd/vmlinuz install/vmlinuz boot/vmlinuz isolinux/vmlinuz casper/vmlinuz live/vmlinuz)
-  INITRD=$(find_first install.amd/initrd.gz install/initrd.gz boot/initrd.img isolinux/initrd isolinux/initrd.img)
+# Detection and parameters come from one reviewed table (lib/families.sh) instead of
+# per-branch guesses. Each row was read out of the publisher's own ISO and initrd.
+FAMILY_OVERRIDE=$(cfg_get '.linux_family // empty')
+FAMILY=$(USBDB_DETECT_FAMILY "$ISO_MNT")
+[[ -z $FAMILY_OVERRIDE ]] || FAMILY=$FAMILY_OVERRIDE
+[[ $FAMILY =~ ^[a-z][a-z0-9-]*$ ]] || die "invalid family name: $FAMILY"
+if ! blockers=$(loopback_blockers "$FAMILY"); then
+  printf '%s\n' "$blockers" >&2
+  die "refusing to stage family '$FAMILY' by loopback"
 fi
 
-# Recursive fallback for unusual ISOs.
+table_kernel=$(family_field "$FAMILY" 2)
+table_initrd=$(family_field "$FAMILY" 3)
+KERNEL=$([[ -n $table_kernel ]] && find_first "$table_kernel")
+INITRD=$([[ -n $table_initrd ]] && find_first "$table_initrd")
+# Only a family with no table entry falls back to searching for a plausible pair.
 if [[ -z $KERNEL ]]; then
-  k=$(find "$ISO_MNT" -maxdepth 5 -type f -name 'vmlinuz*' -print -quit); [[ -z $k ]] || KERNEL=$(rel "$k")
+  k=$(find "$ISO_MNT" -maxdepth 5 -type f \( -name 'vmlinuz*' -o -name 'bzImage' \) -print -quit)
+  [[ -z $k ]] || KERNEL=$(rel "$k")
 fi
 if [[ -z $INITRD ]]; then
-  i=$(find "$ISO_MNT" -maxdepth 5 -type f \( -name 'initrd*' -o -name 'initramfs*' \) -print -quit); [[ -z $i ]] || INITRD=$(rel "$i")
+  i=$(find "$ISO_MNT" -maxdepth 5 -type f \( -name 'initrd*' -o -name 'initramfs*' \) -print -quit)
+  [[ -z $i ]] || INITRD=$(rel "$i")
 fi
 KERNEL=${KERNEL_OVERRIDE:-$KERNEL}; INITRD=${INITRD_OVERRIDE:-$INITRD}
 [[ -f $ISO_MNT$KERNEL && -f $ISO_MNT$INITRD ]] || die "selected kernel or initrd does not exist in the ISO"
@@ -104,22 +102,21 @@ log "  Detected: family=$FAMILY kernel=$KERNEL initrd=$INITRD"
 carrier_fs=$(linux_carrier_filesystem "$FAMILY" "$iso_bytes")
 log "  Carrier filesystem: $carrier_fs"
 
+# CDLABEL names the ISO's own live filesystem, not the carrier that holds the file.
+iso_label=$(blkid -s LABEL -o value "$ISO" 2>/dev/null || true)
+if [[ -z $iso_label ]]; then
+  warn "ISO has no volume label; families that need CDLABEL cannot boot from this media"
+fi
 PARAMS="$PARAMS_OVERRIDE"
-if [[ -z $PARAMS && $FAMILY != casper && $FAMILY != live && $FAMILY != arch ]]; then
-  die "family '$FAMILY' needs reviewed .linux_params in the config; automatic loopback parameters are not validated"
-fi
 if [[ -z $PARAMS ]]; then
-  case "$FAMILY" in
-    casper)  PARAMS="boot=casper iso-scan/filename=/$iso_name ---" ;;
-    live)    PARAMS="boot=live findiso=/$iso_name" ;;
-    arch)    PARAMS="archisobasedir=arch img_loop=/$iso_name img_dev=LABEL=$carrier_label" ;;
-    fedora)  PARAMS="inst.stage2=hd:LABEL=$carrier_label quiet" ;;
-    opensuse) PARAMS="install=hd:LABEL=$carrier_label" ;;
-    nixos)   PARAMS="root=LABEL=$carrier_label" ;;
-    gentoo)  PARAMS="loop=/$iso_name" ;;
-    *)       PARAMS="iso-scan/filename=/$iso_name" ;;
-  esac
+  template=$(family_field "$FAMILY" 4)
+  [[ -n $template ]] || die "family '$FAMILY' has no reviewed parameter template; set .linux_params in the config"
+  if [[ $template == *__ISOLABEL__* && -z $iso_label ]]; then
+    die "family '$FAMILY' boots via CDLABEL but this ISO has no volume label"
+  fi
+  PARAMS=$(render_loopback_params "$template" "$iso_name" "$carrier_label" "$iso_label")
 fi
+[[ -n $PARAMS ]] || die "empty loopback parameters for family '$FAMILY'"
 
 GRUB_CFG=$(mktemp)
 cat > "$GRUB_CFG" <<EOF
@@ -134,10 +131,10 @@ menuentry "Install Linux (internal ISO)" {
 EOF
 log "  GRUB entry:"; sed 's/^/    /' "$GRUB_CFG"
 
-need_cmd efibootmgr; need_cmd blkid
 assert_esp_mounted
+need_cmd efibootmgr
 sb_state=$(bash "$HERE/probe.sh" --json | jq -r .secure_boot)
-[[ $sb_state == disabled ]] || die "Linux beta requires Secure Boot disabled; current state: $sb_state"
+[[ $sb_state == disabled ]] || die "the generated GRUB is unsigned and Secure Boot is '$sb_state'; see docs/SECUREBOOT.md"
 # Fedora names the installed tool grub2-mkstandalone. Reuse an available tool
 # before attempting package installation, including on offline systems.
 if ! command -v grub-mkstandalone >/dev/null && ! command -v grub2-mkstandalone >/dev/null; then
@@ -204,6 +201,15 @@ rm -f "$GRUB_EFI" "$GRUB_CFG"
 esp_partnum=$(cat "/sys/class/block/$(basename "$ESP_PART")/partition")
 esp_disk=$(lsblk -dno PKNAME "$ESP_PART")
 [[ -n $esp_disk ]] || die "could not determine the ESP's parent disk"
+# Firmware keeps duplicate entries: creating the same label/loader twice leaves a
+# stale twin that later makes boot --installer ambiguous. Retire any previous entry
+# that names this exact owned loader before creating the new one.
+while IFS= read -r line; do
+  if [[ $line =~ ^Boot([[:xdigit:]]{4}) && ${line,,} == *'efi\usbless\grubx64.efi'* ]]; then
+    log "Removing stale firmware entry Boot${BASH_REMATCH[1]} for the owned loader"
+    efibootmgr -b "${BASH_REMATCH[1]}" -B >/dev/null || die "could not retire a stale installer entry"
+  fi
+done <<< "$(efibootmgr -v)"
 efibootmgr --create-only --disk "/dev/$esp_disk" --part "$esp_partnum" \
   --label 'Linux Installer' --loader '\EFI\usbless\grubx64.efi'
 
