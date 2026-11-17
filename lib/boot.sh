@@ -5,14 +5,15 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=common.sh
 source "$HERE/common.sh"
 
-MODE=""; DRY=0
+MODE=""; DRY=0; ACK_UNSIGNED=""
 while (($#)); do
   case "$1" in
     --installer|--restore|--cancel)
       [[ -z $MODE ]] || die "choose only one boot action"
       MODE=${1#--}; shift ;;
     --dry-run) DRY=1; shift ;;
-    -h|--help) echo 'usage: usbless-dualboot boot (--installer | --restore | --cancel) [--dry-run]'; exit 0 ;;
+    --acknowledge-unsigned) ACK_UNSIGNED=--acknowledge-unsigned; shift ;;
+    -h|--help) echo 'usage: usbless-dualboot boot (--installer | --restore | --cancel) [--dry-run] [--acknowledge-unsigned]'; exit 0 ;;
     *) die "unknown option: $1" ;;
   esac
 done
@@ -27,8 +28,8 @@ case "$MODE" in
     [[ $(cfg_get '.cleanup_complete // empty') != 1 ]] || die "installer has already been cleaned up"
     [[ $(cfg_get '.stage_complete // empty') == 1 ]] || die "installer staging is not complete"
     case $(cfg_get .direction) in
-      add-windows) label='Windows 11 Installer'; loader='\EFI\BOOT\BOOTX64.EFI' ;;
-      add-linux) label='Linux Installer'; loader='\EFI\usbless\grubx64.efi' ;;
+      add-windows) label='Windows 11 Installer'; loader='\EFI\BOOT\BOOTX64.EFI'; unsigned=0 ;;
+      add-linux) label='Linux Installer'; loader='\EFI\usbless\grubx64.efi'; unsigned=1 ;;
       *) die "invalid plan direction" ;;
     esac
     uuid=$(cfg_get '.installer_partuuid // empty')
@@ -41,6 +42,14 @@ case "$MODE" in
     done <<< "$entries"
     ((${#matches[@]} == 1)) || die "expected one installer UEFI entry matching label, loader and partition UUID; found ${#matches[@]}"
     num=${matches[0]}
+    # The generated GRUB is unsigned; firmware policy decides whether it can run.
+    if ((unsigned)); then
+      if ((DRY)); then
+        assert_unsigned_loader_bootable "$label (usbless GRUB, unsigned)" "$ACK_UNSIGNED" --preview
+      else
+        assert_unsigned_loader_bootable "$label (usbless GRUB, unsigned)" "$ACK_UNSIGNED"
+      fi
+    fi
     log "Next boot: $label (BootNext=$num); normal BootOrder is preserved."
     if ((DRY)); then log 'dry-run: no changes made'; exit 0; fi
     need_root

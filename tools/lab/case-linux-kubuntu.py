@@ -102,14 +102,34 @@ def save(report):
 
 
 def ensure_media(report, table):
-    probe = subprocess.run(['findmnt', '-n', '--mountpoint', str(MEDIA), '-o', 'UUID'],
-                           capture_output=True, text=True)
-    if probe.returncode == 0:
-        if probe.stdout.strip() != report['media_uuid']:
-            raise ValueError('Lab media mount identity differs')
+    # findmnt prints a bare -o UUID list in a 36-column table, which truncates the last
+    # character of a UUID and made a correct mount compare as foreign. Read the UUID
+    # of the device that is actually mounted instead.
+    # findmnt exits 0 with EMPTY output when the mountpoint is absent, so the exit
+    # status alone cannot distinguish "mounted" from "not mounted". Ask the kernel.
+    if os.path.ismount(MEDIA):
+        source = subprocess.run(['findmnt', '-n', '--mountpoint', str(MEDIA), '-o', 'SOURCE'],
+                                capture_output=True, text=True)
+        if source.returncode != 0 or not source.stdout.strip():
+            raise ValueError('Could not resolve the lab media mount')
+        source_done = True
+    else:
+        source_done = False
+    if source_done:
+        # A private mount namespace may not see the block device by path; use the
+        # kernel's own view of the mountpoint instead of a second name lookup.
+        # One mountpoint can appear more than once (the guest namespace overlays it),
+        # so compare only the distinct values findmnt reports.
+        probe = subprocess.run(['findmnt', '-n', '--mountpoint', str(MEDIA), '-o', 'UUID', '--raw'],
+                               capture_output=True, text=True)
+        uuids = {line.strip() for line in probe.stdout.split() if line.strip()}
+        if probe.returncode != 0 or len(uuids) != 1:
+            raise ValueError(f'Could not inspect the lab media mount: {source.stdout!r} {sorted(uuids)!r}')
+        mounted_uuid = uuids.pop()
+        if mounted_uuid != report['media_uuid']:
+            raise ValueError(f"Lab media mount identity differs: mount={mounted_uuid!r} "
+                             f"state={report['media_uuid']!r}")
         return
-    if probe.returncode != 1:
-        raise ValueError('Could not inspect the lab media mount')
     matches = [p for p in table['partitions'] if p['uuid'].lower() == report['media_partuuid']]
     if len(matches) != 1 or matches[0]['size'] * 512 != 24 * 1024**3:
         raise ValueError('Saved lab media partition is missing or changed')

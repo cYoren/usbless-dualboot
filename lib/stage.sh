@@ -113,6 +113,13 @@ OVERSIZED=$(find "$SETUP_MNT" -type f -size +4294967295c -print)
 cleanup; trap - EXIT
 
 log "Registering the installer without changing the default boot order..."
+# Creating the same label/loader twice leaves a stale twin that later makes
+# boot --installer ambiguous. Retire previous entries for this installer first.
+while IFS= read -r line; do
+  if [[ $line =~ ^Boot([[:xdigit:]]{4}) && ${line,,} == *'Windows 11 Installer'* && ${line,,} == *'efi\boot\bootx64.efi'* ]]; then
+    efibootmgr -b "${BASH_REMATCH[1]}" -B >/dev/null || die "could not retire a stale installer entry"
+  fi
+done <<< "$(efibootmgr -v)"
 efibootmgr --create-only --disk "$DISK" --part "$inst_partnum" \
   --label 'Windows 11 Installer' --loader '\EFI\BOOT\BOOTX64.EFI'
 
